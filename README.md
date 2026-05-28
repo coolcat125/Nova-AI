@@ -30,7 +30,7 @@ Nova is a single-prompt autonomous desktop AI agent with always-on voice, live s
 ## Setup
 
 ```bash
-git clone https://github.com/coolcat125/nova.git
+git clone [https://github.com/coolcat125/nova.git](https://github.com/coolcat125/Nova-AI/tree/main)
 cd nova
 pip install -r requirements.txt
 playwright install
