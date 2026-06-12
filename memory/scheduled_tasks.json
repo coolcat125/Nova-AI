@@ -1,0 +1,16 @@
+[
+  {
+    "id": "4c54ab71",
+    "goal": "persist test",
+    "schedule": "interval:5",
+    "enabled": true,
+    "last_run": "2026-06-12T07:06:30.297738"
+  },
+  {
+    "id": "e62edba5",
+    "goal": "persist test",
+    "schedule": "interval:5",
+    "enabled": true,
+    "last_run": "2026-06-12T07:06:30.299230"
+  }
+]
