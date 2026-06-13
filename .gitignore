@@ -11,3 +11,6 @@ _update.bat
 _update.log
 Nova.next.exe
 Nova.old.exe
+memory/long_term.json
+memory/quota.json
+memory/scheduled_tasks.json
