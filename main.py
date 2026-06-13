@@ -946,6 +946,7 @@ class NovaLive:
 def main():
     ui = NovaUI()
 
+    ui._win._log.append_log("SYS: Checking for updates...")
     check_for_update_async(callback=lambda r: ui._win._update_sig.emit(r))
 
     def runner():

@@ -99,49 +99,44 @@ def _apply_local(path: str) -> dict:
     try:
         if _SYSTEM == "Windows":
             batch_path = base_dir / "_update.bat"
-            old_dir = base_dir / "_old"
+            frozen = getattr(sys, "frozen", False)
+            new_exe = base_dir / "Nova.exe"
+            next_exe = base_dir / "Nova.next.exe"
+            old_exe = base_dir / "Nova.old.exe"
             batch_lines = [
                 "@echo off",
                 "title Nova Updater",
-                "timeout /t 1 /nobreak >nul",
+                f'cd /d "{base_dir}"',
+                "timeout /t 3 /nobreak >nul",
             ]
-            if getattr(sys, "frozen", False):
+            if frozen:
                 batch_lines.extend([
-                    f'if exist "{old_dir}" rmdir /s /q "{old_dir}"',
-                    f'mkdir "{old_dir}"',
-                    f'move /y "{base_dir / "Nova.exe"}" "{old_dir / "Nova.exe"}" >nul 2>&1',
-                    f'copy /y "{exe_path}" "{base_dir / "Nova.exe"}" >nul 2>&1',
-                    f'if exist "{old_dir}" rmdir /s /q "{old_dir}" >nul 2>&1',
-                    f':retry_rm',
-                    f'if exist "{exe_path.parent}" (',
-                    f'  rmdir /s /q "{exe_path.parent}" >nul 2>&1',
-                    f'  if exist "{exe_path.parent}" (',
-                    f'    timeout /t 1 /nobreak >nul',
-                    f'    goto retry_rm',
-                    f'  )',
-                    f')',
-                    f'start "" "{base_dir / "Nova.exe"}"',
-                    "exit",
+                    f'copy /y "{exe_path}" "{next_exe}"',
+                    f'move /y "{new_exe}" "{old_exe}"',
+                    f'move /y "{next_exe}" "{new_exe}"',
+                    f'del "{old_exe}"',
                 ])
             else:
                 batch_lines.extend([
-                    f'copy /y "{exe_path}" "{base_dir / "Nova.exe"}" >nul 2>&1',
-                    f':retry_rm',
-                    f'if exist "{exe_path.parent}" (',
-                    f'  rmdir /s /q "{exe_path.parent}" >nul 2>&1',
-                    f'  if exist "{exe_path.parent}" (',
-                    f'    timeout /t 1 /nobreak >nul',
-                    f'    goto retry_rm',
-                    f'  )',
-                    f')',
-                    f'start "" "{sys.executable}" "{base_dir / "main.py"}"',
-                    "exit",
+                    f'copy /y "{exe_path}" "{new_exe}"',
                 ])
+            batch_lines.extend([
+                f':retry_rm',
+                f'if exist "{exe_path.parent}" (',
+                f'  rmdir /s /q "{exe_path.parent}"',
+                f'  if exist "{exe_path.parent}" (',
+                f'    timeout /t 1 /nobreak >nul',
+                f'    goto retry_rm',
+                f'  )',
+                f')',
+                f'start "" /b "{sys.executable if not frozen else new_exe}"'
+                + (f' "{base_dir / "main.py"}"' if not frozen else ""),
+                "exit",
+            ])
             batch_path.write_text("\n".join(batch_lines), encoding="utf-8")
             print("[Updater] Launching updater and exiting...")
             subprocess.Popen(
                 ["cmd.exe", "/c", str(batch_path)],
-                shell=True,
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
             sys.exit(0)

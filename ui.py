@@ -605,9 +605,11 @@ class HudCanvas(QWidget):
                     p.setBrush(Qt.BrushStyle.NoBrush)
                     p.drawEllipse(QRectF(cx - rr, cy - rr, rr * 2, rr * 2))
 
-        # status text
+        # status text (RESTARTING overrides all)
         sy = cy + fw * 0.40
-        if self.muted:
+        if self.state == "RESTARTING":
+            txt, col = "RESTARTING...", qcol(C.ACC)
+        elif self.muted:
             txt, col = "MUTED",       qcol(C.MUTED_C)
         elif self.speaking:
             txt, col = "SPEAKING",    qcol(C.ACC)
@@ -623,8 +625,6 @@ class HudCanvas(QWidget):
             txt, col = "IDLE",      qcol(C.PRI_DIM)
         elif self.state == "INITIALISING":
             txt, col = "INITIALIZING", qcol(C.PRI_DIM)
-        elif self.state == "RESTARTING":
-            txt, col = "RESTARTING...", qcol(C.ACC)
         else:
             txt, col = None, None
             if not self._restart_armed:
@@ -648,7 +648,10 @@ class HudCanvas(QWidget):
         N, bw = 36, 8
         wx0 = (W - N * bw) / 2
         for i in range(N):
-            if self.muted:
+            if self.state == "RESTARTING":
+                hgt = int(3 + 3 * math.sin(self._tick * 0.09 + i * 0.6))
+                cl  = qcol(C.BORDER_B)
+            elif self.muted:
                 hgt, cl = 2, qcol(C.MUTED_C)
             elif self.speaking:
                 hgt = random.randint(3, 20)
@@ -662,7 +665,7 @@ class HudCanvas(QWidget):
             elif self.state == "IDLE":
                 hgt = int(2 + 2 * math.sin(self._tick * 0.06 + i * 0.4))
                 cl  = qcol(C.BORDER)
-            elif self.state in ("INITIALISING", "RESTARTING"):
+            elif self.state == "INITIALISING":
                 hgt = int(3 + 3 * math.sin(self._tick * 0.09 + i * 0.6))
                 cl  = qcol(C.BORDER_B)
             else:
@@ -1556,7 +1559,7 @@ class MainWindow(QMainWindow):
         self._log_sig.connect(self._log.append_log)
         self._nova_sig.connect(self._log._update_last_nova)
         self._nova_end_sig.connect(self._log._finish_nova)
-        self._state_sig.connect(self._apply_state)
+        self._state_sig.connect(self._on_state_signal)
 
         self._ready = self._check_config()
         if not self._ready:
@@ -1785,14 +1788,13 @@ class MainWindow(QMainWindow):
                               f"border-bottom: 1px solid {C.BORDER}; padding-bottom: 2px; margin-top: 4px;")
         lay.addWidget(ver_lbl)
 
+        self._known_vers = ["v2.0.5", "v2.0.4", "v2.0.3", "v2.0.1", "v2.0.0", "v1.0.0"]
         self._ver_combo = QComboBox()
         self._ver_combo.setFont(QFont("Courier New", 11))
         self._ver_combo.addItem(f"v{__version__} (current)")
-        self._ver_combo.addItem("v2.0.5")
-        self._ver_combo.addItem("v2.0.3")
-        self._ver_combo.addItem("v2.0.1")
-        self._ver_combo.addItem("v2.0.0")
-        self._ver_combo.addItem("v1.0.0")
+        for v in self._known_vers:
+            if v != f"v{__version__}":
+                self._ver_combo.addItem(v)
         self._ver_combo.setCurrentIndex(0)
         self._ver_combo.currentIndexChanged.connect(self._on_version_changed)
         self._ver_combo.setStyleSheet(
@@ -1804,14 +1806,23 @@ class MainWindow(QMainWindow):
         return w
 
     def _on_version_changed(self, idx: int):
-        vers = ["v2.0.5", "v2.0.4", "v2.0.3", "v2.0.1", "v2.0.0", "v1.0.0"]
         if idx == 0:
             return
-        ver = vers[idx]
+        ver = self._ver_combo.currentText()
+        self._ver_combo.setEnabled(False)
+        if not getattr(sys, "frozen", False):
+            self._switch_version_dev(ver)
+            return
         url = f"https://github.com/coolcat125/Nova-AI/releases/download/{ver}/Nova.exe"
         self._log.append_log(f"SYS: Downloading {ver}...")
-        self._ver_combo.setEnabled(False)
         threading.Thread(target=self._dl_version, args=(url,), daemon=True).start()
+
+    def _switch_version_dev(self, ver: str):
+        stripped = ver.removeprefix("v")
+        self._log.append_log(f"SYS: Switching to {ver}...")
+        with open(Path(__file__).resolve().parent / "version.py", "w", encoding="utf-8") as f:
+            f.write(f'__version__ = "{stripped}"\n')
+        self.restart_app()
 
     def _dl_version(self, url: str):
         from update import download_to_temp
@@ -1977,6 +1988,7 @@ class MainWindow(QMainWindow):
     def _on_update_result(self, result: dict):
         if result.get("update_available"):
             ver = result.get("version", "?")
+            self._log.append_log(f"SYS: Update available: v{ver}")
             reply = QMessageBox.question(
                 self, "Update Available",
                 f"Nova v{ver} is available.\n\nDownload and install now?",
@@ -1984,20 +1996,36 @@ class MainWindow(QMainWindow):
                 QMessageBox.StandardButton.No,
             )
             if reply == QMessageBox.StandardButton.Yes:
-                from update import apply_update
-                self._log.append_log(f"SYS: Downloading v{ver}...")
+                self._log.append_log(f"SYS: Updating to v{ver}...")
                 threading.Thread(
-                    target=lambda: self._do_update(result.get("download_url", "")),
+                    target=lambda: self._do_update(ver, result.get("download_url", "")),
                     daemon=True,
                 ).start()
         elif result.get("error"):
             self._log.append_log(f"SYS: Update check failed: {result['error']}")
+        else:
+            from version import __version__
+            self._log.append_log(f"SYS: Already up to date (v{__version__})")
 
-    def _do_update(self, url: str):
-        from update import apply_update
-        result = apply_update(url)
-        if result.get("error"):
-            self._log.append_log(f"SYS: Update failed: {result['error']}")
+    def _do_update(self, ver: str, url: str):
+        if not getattr(sys, "frozen", False):
+            stripped = ver.removeprefix("v")
+            Path(Path(__file__).resolve().parent / "version.py").write_text(
+                f'__version__ = "{stripped}"\n', encoding="utf-8"
+            )
+            self._log.append_log(f"SYS: Updated to v{ver}")
+            QTimer.singleShot(0, self.restart_app)
+            return
+        from update import download_to_temp
+        path = download_to_temp(url)
+        if not path:
+            self._log.append_log("SYS: Download failed")
+            return
+        QTimer.singleShot(0, lambda: self._apply_and_exit(path))
+
+    def _apply_and_exit(self, path: str):
+        from update import apply_local
+        apply_local(path)
 
     def restart_app(self):
         self._log.append_log("SYS: Restarting...")
@@ -2005,11 +2033,13 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(5000, self._do_restart)
 
     def _do_restart(self):
-        import subprocess, sys
         if getattr(sys, "frozen", False):
-            subprocess.Popen([sys.executable])
+            subprocess.Popen([sys.executable], creationflags=subprocess.CREATE_NO_WINDOW)
         else:
-            subprocess.Popen([sys.executable, str(Path(__file__).resolve().parent / "main.py")])
+            subprocess.Popen(
+                [sys.executable, str(Path(__file__).resolve().parent / "main.py")],
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
         QApplication.instance().quit()
 
     def _manual_update_check(self):
@@ -2055,6 +2085,11 @@ class MainWindow(QMainWindow):
         self._log.append_log(f"You: {txt}")
         if self.on_text_command:
             threading.Thread(target=self.on_text_command, args=(txt,), daemon=True).start()
+
+    def _on_state_signal(self, state: str):
+        if self.hud.state in ("RESTARTING", "MUTED"):
+            return
+        self._apply_state(state)
 
     def _apply_state(self, state: str):
         self.hud.state    = state
