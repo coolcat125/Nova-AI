@@ -7,3 +7,7 @@ build/
 stderr.txt
 stdout.txt
 Nova.exe
+_update.bat
+_update.log
+Nova.next.exe
+Nova.old.exe
