@@ -776,4 +776,4 @@ def _log(player, text: str):
     short = str(text)[:80]
     print(f"[Browser] {short}")
     if player:
-        player.write_log(f"[browser] {short[:60]}")
+        player.write_log(f"[Browser] {short[:60]}")

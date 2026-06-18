@@ -209,7 +209,7 @@ def send_message(
     preview = message_text[:50] + ("..." if len(message_text) > 50 else "")
     print(f"[SendMessage] {platform}  ->  {receiver}: {preview}")
     if player:
-        player.write_log(f"[msg] {platform}  ->  {receiver}")
+        player.write_log(f"[Message] {platform}  ->  {receiver}")
 
     try:
         handler = _resolve_platform(platform)
@@ -219,6 +219,6 @@ def send_message(
 
     print(f"[SendMessage] {'[OK]' if 'sent' in result.lower() else ''} {result}")
     if player:
-        player.write_log(f"[msg] {result}")
+        player.write_log(f"[Message] {result}")
 
     return result

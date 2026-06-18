@@ -339,7 +339,7 @@ def desktop_control(
     task   = params.get("task", "").strip()
 
     if player:
-        player.write_log(f"[desktop] {action or task[:40]}")
+        player.write_log(f"[Desktop] {action or task[:40]}")
 
     try:
         if action == "wallpaper":

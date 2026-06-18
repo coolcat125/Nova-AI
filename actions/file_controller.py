@@ -455,7 +455,7 @@ def file_controller(
     name   = params.get("name", "")
 
     if player:
-        player.write_log(f"[file] {action} {name or path}")
+        player.write_log(f"[File] {action} {name or path}")
 
     try:
         if action == "list":

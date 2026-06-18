@@ -4,14 +4,23 @@ import re
 import threading
 import os
 import sys
+import time
 import traceback
 from pathlib import Path
 from dotenv import load_dotenv
 
-
-
 _env_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(_env_path, override=True)
+if _env_path.exists():
+    for _ in range(2):
+        try:
+            _env_path.read_bytes()
+            break
+        except OSError:
+            time.sleep(0.5)
+    try:
+        load_dotenv(_env_path, override=True)
+    except OSError:
+        print("[main] Warning: could not load .env (OneDrive offline file)")
 
 import sounddevice as sd
 from google import genai
@@ -547,11 +556,11 @@ class NovaLive:
             self._is_speaking = value
         if value:
             self.ui.set_state("SPEAKING")
-        elif not self.ui.muted:
+        else:
             self.ui.set_state("LISTENING")
 
     def speak(self, text: str):
-        if not self._loop or not self.session or self.ui.muted:
+        if not self._loop or not self.session:
             return
         asyncio.run_coroutine_threadsafe(
             self.session.send_client_content(
@@ -616,8 +625,7 @@ class NovaLive:
                 self.speak(mem_str.replace("[WHAT YOU KNOW ABOUT THIS PERSON  --  use naturally, never recite like a list]\n", ""))
             else:
                 self.speak("I don't have any stored memories about you yet.")
-            if not self.ui.muted:
-                self.ui.set_state("LISTENING")
+            self.ui.set_state("LISTENING")
             return types.FunctionResponse(
                 id=fc.id, name=name,
                 response={"result": "recalled", "silent": True}
@@ -630,8 +638,7 @@ class NovaLive:
             if key and value:
                 update_memory({category: {key: {"value": value}}})
                 print(f"[Memory] save_memory: {category}/{key} = {value}")
-            if not self.ui.muted:
-                self.ui.set_state("LISTENING")
+            self.ui.set_state("LISTENING")
             return types.FunctionResponse(
                 id=fc.id, name=name,
                 response={"result": "ok", "silent": True}
@@ -743,11 +750,10 @@ class NovaLive:
             self.speak_error(name, e)
 
         # Log completion and show DONE state briefly
-        summary = str(result)[:120]
-        self.ui.write_log(f" [OK] {name}: {summary}")
-        if not self.ui.muted:
-            self.ui.set_state("DONE")
-            asyncio.create_task(self._delayed_idle())
+        summary = str(result)[:120].replace("\n", " ").replace("\r", "")
+        self.ui.write_log(f"[OK] {name}: {summary}")
+        self.ui.set_state("DONE")
+        asyncio.create_task(self._delayed_idle())
 
         print(f"[Nova] {name}  ->  {summary[:80]}")
         return types.FunctionResponse(
@@ -757,8 +763,7 @@ class NovaLive:
 
     async def _delayed_idle(self, delay: float = 2.5):
         await asyncio.sleep(delay)
-        if not self.ui.muted:
-            self.ui.set_state("LISTENING")
+        self.ui.set_state("LISTENING")
 
     async def _send_realtime(self):
         while True:
@@ -776,10 +781,12 @@ class NovaLive:
                 nova_speaking = self._is_speaking
             if not nova_speaking and not self.ui.muted:
                 data = indata.tobytes()
-                loop.call_soon_threadsafe(
-                    self.out_queue.put_nowait,
-                    {"data": data, "mime_type": "audio/pcm"}
-                )
+                def _put():
+                    try:
+                        self.out_queue.put_nowait({"data": data, "mime_type": "audio/pcm"})
+                    except asyncio.QueueFull:
+                        pass
+                loop.call_soon_threadsafe(_put)
 
         try:
             while True:
@@ -890,7 +897,7 @@ class NovaLive:
                         self._turn_done_event.clear()
                     continue
                 self.set_speaking(True)
-                if self.ui.muted:
+                if self.ui.deafened:
                     continue
                 await asyncio.to_thread(stream.write, chunk)
         except Exception as e:

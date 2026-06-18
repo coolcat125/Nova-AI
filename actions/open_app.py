@@ -138,7 +138,7 @@ def open_app(
     print(f"[open_app] Launching: '{app_name}'  ->  '{normalized}' ({_SYSTEM})")
 
     if player:
-        player.write_log(f"[open_app] {app_name}")
+        player.write_log(f"[OpenApp] {app_name}")
 
     try:
         if launcher(normalized):

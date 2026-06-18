@@ -27,7 +27,7 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QFileDialog, QFrame, QGraphicsOpacityEffect,
     QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QScrollArea,
-    QSizePolicy, QTextEdit, QVBoxLayout, QWidget, QProgressBar,
+    QSizePolicy, QSplitter, QTextEdit, QVBoxLayout, QWidget, QProgressBar,
 )
 
 from version import __version__
@@ -437,6 +437,10 @@ class HudCanvas(QWidget):
                 self._tgt_scale = random.uniform(0.998, 1.004)
                 self._tgt_halo  = random.uniform(30, 48)
                 self._hue_shift = 270.0
+            elif self.state == "DEAFENED":
+                self._tgt_scale = random.uniform(0.995, 1.0)
+                self._tgt_halo  = random.uniform(5, 12)
+                self._hue_shift = 320.0
             elif self.muted:
                 self._tgt_scale = random.uniform(0.998, 1.002)
                 self._tgt_halo  = random.uniform(15, 28)
@@ -453,11 +457,31 @@ class HudCanvas(QWidget):
         self._scale += (self._tgt_scale - self._scale) * sp
         self._halo  += (self._tgt_halo  - self._halo)  * sp
 
-        speeds = [2.0, -1.4, 2.8] if self.speaking else ([2.4, -1.6, 3.0] if self.state in ("PROCESSING", "EXECUTING") else [0.55, -0.35, 0.9])
+        if self.state == "DEAFENED":
+            speeds = [0.1, -0.1, 0.1]
+        elif self.muted:
+            speeds = [0.3, -0.2, 0.4]
+        elif self.speaking:
+            speeds = [2.0, -1.4, 2.8]
+        elif self.state in ("PROCESSING", "EXECUTING"):
+            speeds = [2.4, -1.6, 3.0]
+        else:
+            speeds = [0.55, -0.35, 0.9]
         for i, spd in enumerate(speeds):
             self._rings[i] = (self._rings[i] + spd) % 360
 
-        scan_spd = 4.5 if self.speaking else (3.5 if self.state in ("PROCESSING", "EXECUTING") else (2.0 if self.state == "THINKING" else 1.3))
+        if self.state == "DEAFENED":
+            scan_spd = 0.5
+        elif self.muted:
+            scan_spd = 0.8
+        elif self.speaking:
+            scan_spd = 4.5
+        elif self.state in ("PROCESSING", "EXECUTING"):
+            scan_spd = 3.5
+        elif self.state == "THINKING":
+            scan_spd = 2.0
+        else:
+            scan_spd = 1.3
         self._scan  = (self._scan  + scan_spd) % 360
         self._scan2 = (self._scan2 + -scan_spd * 0.6) % 360
 
@@ -476,10 +500,32 @@ class HudCanvas(QWidget):
             self._blink_tick = 0
 
         # nova sphere update
-        self._nova_speed = 0.022 if self.state in ("PROCESSING", "EXECUTING") else (0.015 if self.speaking else (0.010 if self.state == "THINKING" else (0.008 if self.state == "LISTENING" else 0.004)))
+        if self.state == "DEAFENED":
+            self._nova_speed = 0.003
+        elif self.muted:
+            self._nova_speed = 0.005
+        elif self.state in ("PROCESSING", "EXECUTING"):
+            self._nova_speed = 0.022
+        elif self.speaking:
+            self._nova_speed = 0.015
+        elif self.state == "THINKING":
+            self._nova_speed = 0.010
+        elif self.state == "LISTENING":
+            self._nova_speed = 0.008
+        else:
+            self._nova_speed = 0.004
         self._nova_rot += self._nova_speed
         t = time.time()
-        jitter = 0.30 if self.state in ("PROCESSING", "EXECUTING") else (0.20 if self.speaking else 0.15)
+        if self.state == "DEAFENED":
+            jitter = 0.02
+        elif self.muted:
+            jitter = 0.06
+        elif self.state in ("PROCESSING", "EXECUTING"):
+            jitter = 0.30
+        elif self.speaking:
+            jitter = 0.20
+        else:
+            jitter = 0.15
         for d in self._nova_dots:
             d[6] += d[7]
             d[0] += math.sin(t + d[6]) * jitter
@@ -493,11 +539,31 @@ class HudCanvas(QWidget):
                 f[1] = 1.05
                 f[0] = random.random()
 
-        beat_int = 1900 if self.speaking else (1200 if self.state in ("PROCESSING", "EXECUTING") else (2400 if self.state == "LISTENING" else 3600))
+        if self.state == "DEAFENED":
+            beat_int = 5000
+        elif self.muted:
+            beat_int = 4000
+        elif self.speaking:
+            beat_int = 1900
+        elif self.state in ("PROCESSING", "EXECUTING"):
+            beat_int = 1200
+        elif self.state == "LISTENING":
+            beat_int = 2400
+        else:
+            beat_int = 3600
         now_ms = time.time() * 1000
         bp = (now_ms % beat_int) / beat_int
         if bp < self._nova_last_beat:
-            hue_offset = 210 if self.state == "THINKING" else (280 if self.state in ("PROCESSING", "EXECUTING") else 270)
+            if self.state == "DEAFENED":
+                hue_offset = 270
+            elif self.muted:
+                hue_offset = 270
+            elif self.state == "THINKING":
+                hue_offset = 210
+            elif self.state in ("PROCESSING", "EXECUTING"):
+                hue_offset = 280
+            else:
+                hue_offset = 270
             self._nova_rings.append([now_ms, hue_offset + random.random() * 50])
         self._nova_last_beat = bp
         self._nova_rings = [r for r in self._nova_rings if time.time() * 1000 - r[0] < beat_int * 4]
@@ -609,6 +675,8 @@ class HudCanvas(QWidget):
         sy = cy + fw * 0.40
         if self.state == "RESTARTING":
             txt, col = "RESTARTING...", qcol(C.ACC)
+        elif self.state == "DEAFENED":
+            txt, col = "DEAFENED",    qcol(C.MUTED_C)
         elif self.muted:
             txt, col = "MUTED",       qcol(C.MUTED_C)
         elif self.speaking:
@@ -651,6 +719,8 @@ class HudCanvas(QWidget):
             if self.state == "RESTARTING":
                 hgt = int(3 + 3 * math.sin(self._tick * 0.09 + i * 0.6))
                 cl  = qcol(C.BORDER_B)
+            elif self.state == "DEAFENED":
+                hgt, cl = 1, qcol(C.MUTED_C)
             elif self.muted:
                 hgt, cl = 2, qcol(C.MUTED_C)
             elif self.speaking:
@@ -779,7 +849,7 @@ class LogWidget(QTextEdit):
 
     def _enqueue(self, text: str):
         self._queue.append(text)
-        if not self._typing:
+        if not self._typing and not self._nova_active:
             self._next()
 
     def _next(self):
@@ -822,6 +892,7 @@ class LogWidget(QTextEdit):
             if not self._nova_buf or not self._nova_has_prefix:
                 self._typing = False
                 QTimer.singleShot(20, self._next)
+            return
         if self._pos < len(self._text):
             ch  = self._text[self._pos]
             cur = self.textCursor()
@@ -1349,7 +1420,9 @@ class SetupOverlay(QWidget):
         if prov == "gemini":
             self._key_lbl.setText("GEMINI API KEY")
             self._key_input.setPlaceholderText("AIza...")
+            self._key_input.setEchoMode(QLineEdit.EchoMode.Password)
             self._key_input.show()
+            self._key_toggle.show()
             self._key_link.setText(
             '<a href="https://aistudio.google.com" style="color: #ff80d5; text-decoration: underline;">Get your free key <span style="font-size:22px;">&rarr;</span></a>'
             )
@@ -1359,7 +1432,9 @@ class SetupOverlay(QWidget):
         elif prov == "openai":
             self._key_lbl.setText("OPENAI API KEY")
             self._key_input.setPlaceholderText("sk-...")
+            self._key_input.setEchoMode(QLineEdit.EchoMode.Password)
             self._key_input.show()
+            self._key_toggle.show()
             self._key_link.setText(
                 '<a href="https://platform.openai.com" style="color: #ff80d5; text-decoration: underline;">Get your OpenAI key <span style="font-size:22px;">&rarr;</span></a>'
             )
@@ -1372,7 +1447,9 @@ class SetupOverlay(QWidget):
         elif prov == "ollama":
             self._key_lbl.setText("OLLAMA BASE URL")
             self._key_input.setPlaceholderText("http://localhost:11434/v1")
+            self._key_input.setEchoMode(QLineEdit.EchoMode.Normal)
             self._key_input.show()
+            self._key_toggle.hide()
             self._key_link.hide()
             self._url_lbl.hide()
             self._url_input.hide()
@@ -1517,6 +1594,7 @@ class MainWindow(QMainWindow):
 
         self.on_text_command  = None
         self._muted           = False
+        self._deafened        = False
         self._current_file: str | None = None
 
         central = QWidget()
@@ -1528,21 +1606,28 @@ class MainWindow(QMainWindow):
         root.setSpacing(0)
         root.addWidget(self._build_header())
 
-        body = QHBoxLayout()
-        body.setContentsMargins(0, 0, 0, 0)
-        body.setSpacing(0)
-
         self._left_panel = self._build_left_panel()
-        body.addWidget(self._left_panel, stretch=0)
-
+        self._right_panel = self._build_right_panel()
         self.hud = HudCanvas(face_path)
         self.hud.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        body.addWidget(self.hud, stretch=5)
 
-        self._right_panel = self._build_right_panel()
-        body.addWidget(self._right_panel, stretch=0)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setHandleWidth(4)
+        splitter.setChildrenCollapsible(False)
+        splitter.setStyleSheet(f"""
+            QSplitter::handle {{
+                background: {C.BORDER};
+            }}
+        """)
+        splitter.addWidget(self._left_panel)
+        splitter.addWidget(self.hud)
+        splitter.addWidget(self._right_panel)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(2, 0)
+        splitter.setSizes([_LEFT_W, _DEFAULT_W - _LEFT_W - _RIGHT_W, _RIGHT_W])
 
-        root.addLayout(body, stretch=1)
+        root.addWidget(splitter, stretch=1)
         root.addWidget(self._build_footer())
 
         self._clock_tmr = QTimer(self)
@@ -1730,7 +1815,6 @@ class MainWindow(QMainWindow):
 
     def _build_left_panel(self) -> QWidget:
         w = QWidget()
-        w.setFixedWidth(_LEFT_W)
         w.setStyleSheet(f"background: {C.DARK}; border-right: 1px solid {C.BORDER};")
         lay = QVBoxLayout(w)
         lay.setContentsMargins(8, 8, 8, 8)
@@ -1840,7 +1924,6 @@ class MainWindow(QMainWindow):
 
     def _build_right_panel(self) -> QWidget:
         w = QWidget()
-        w.setFixedWidth(_RIGHT_W)
         w.setStyleSheet(f"background: {C.DARK}; border-left: 1px solid {C.BORDER};")
         lay = QVBoxLayout(w)
         lay.setContentsMargins(8, 8, 8, 8)
@@ -1879,13 +1962,26 @@ class MainWindow(QMainWindow):
         lay.addWidget(_sec("COMMAND INPUT"))
         lay.addLayout(self._build_input_row())
 
-        self._mute_btn = QPushButton("  MICROPHONE ACTIVE")
-        self._mute_btn.setFixedHeight(28)
-        self._mute_btn.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
-        self._mute_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._mute_btn.clicked.connect(self._toggle_mute)
-        self._style_mute_btn()
-        lay.addWidget(self._mute_btn)
+        mic_row = QHBoxLayout()
+        mic_row.setSpacing(4)
+
+        self._mic_btn = QPushButton("MUTE")
+        self._mic_btn.setFixedHeight(28)
+        self._mic_btn.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
+        self._mic_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._mic_btn.clicked.connect(self._toggle_mute)
+        self._style_mic_btn()
+
+        self._deaf_btn = QPushButton("DEAFEN")
+        self._deaf_btn.setFixedHeight(28)
+        self._deaf_btn.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
+        self._deaf_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._deaf_btn.clicked.connect(self._toggle_deafen)
+        self._style_deaf_btn()
+
+        mic_row.addWidget(self._mic_btn, stretch=1)
+        mic_row.addWidget(self._deaf_btn, stretch=1)
+        lay.addLayout(mic_row)
 
         fs_btn = QPushButton("FULLSCREEN  [F11]")
         fs_btn.setFixedHeight(30)
@@ -2048,9 +2144,13 @@ class MainWindow(QMainWindow):
         check_for_update_async(callback=lambda r: self._update_sig.emit(r))
 
     def _toggle_mute(self):
+        if self._deafened:
+            self._deafened = False
+            self._style_deaf_btn()
+            self._log.append_log("SYS: Undeafened.")
         self._muted = not self._muted
-        self.hud.muted = self._muted
-        self._style_mute_btn()
+        self.hud.muted = self._muted or self._deafened
+        self._style_mic_btn()
         if self._muted:
             self._apply_state("MUTED")
             self._log.append_log("SYS: Microphone muted.")
@@ -2058,10 +2158,26 @@ class MainWindow(QMainWindow):
             self._apply_state("LISTENING")
             self._log.append_log("SYS: Microphone active.")
 
-    def _style_mute_btn(self):
+    def _toggle_deafen(self):
+        self._deafened = not self._deafened
+        if self._deafened:
+            self._muted = True
+            self._style_mic_btn()
+            self.hud.muted = True
+            self._apply_state("DEAFENED")
+            self._log.append_log("SYS: Deafened.")
+        else:
+            self._muted = False
+            self._style_mic_btn()
+            self.hud.muted = False
+            self._apply_state("LISTENING")
+            self._log.append_log("SYS: Undeafened.")
+        self._style_deaf_btn()
+
+    def _style_mic_btn(self):
         if self._muted:
-            self._mute_btn.setText("  MICROPHONE MUTED")
-            self._mute_btn.setStyleSheet(f"""
+            self._mic_btn.setText("MUTED")
+            self._mic_btn.setStyleSheet(f"""
                 QPushButton {{
                     background: #140006; color: {C.MUTED_C};
                     border: 1px solid {C.MUTED_C}; border-radius: 4px;
@@ -2069,13 +2185,33 @@ class MainWindow(QMainWindow):
                 QPushButton:hover {{ background: #1e000a; }}
             """)
         else:
-            self._mute_btn.setText("  MICROPHONE ACTIVE")
-            self._mute_btn.setStyleSheet(f"""
+            self._mic_btn.setText("MUTE")
+            self._mic_btn.setStyleSheet(f"""
                 QPushButton {{
                     background: #00140a; color: {C.GREEN};
                     border: 1px solid {C.GREEN}; border-radius: 4px;
                 }}
                 QPushButton:hover {{ background: #001f10; }}
+            """)
+
+    def _style_deaf_btn(self):
+        if self._deafened:
+            self._deaf_btn.setText("DEAFENED")
+            self._deaf_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: #140006; color: {C.MUTED_C};
+                    border: 1px solid {C.MUTED_C}; border-radius: 4px;
+                }}
+                QPushButton:hover {{ background: #1e000a; }}
+            """)
+        else:
+            self._deaf_btn.setText("DEAFEN")
+            self._deaf_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent; color: {C.TEXT_DIM};
+                    border: 1px solid {C.BORDER}; border-radius: 4px;
+                }}
+                QPushButton:hover {{ background: {C.PANEL2}; }}
             """)
 
     def _send(self):
@@ -2087,7 +2223,7 @@ class MainWindow(QMainWindow):
             threading.Thread(target=self.on_text_command, args=(txt,), daemon=True).start()
 
     def _on_state_signal(self, state: str):
-        if self.hud.state in ("RESTARTING", "MUTED"):
+        if self.hud.state in ("RESTARTING", "MUTED", "DEAFENED"):
             return
         self._apply_state(state)
 
@@ -2211,6 +2347,10 @@ class NovaUI:
         return self._win._drop_zone.current_file()
 
     @property
+    def deafened(self) -> bool:
+        return self._win._deafened
+
+    @property
     def on_text_command(self):
         return self._win.on_text_command
 
@@ -2238,5 +2378,4 @@ class NovaUI:
         self.set_state("SPEAKING")
 
     def stop_speaking(self):
-        if not self.muted:
-            self.set_state("LISTENING")
+        self.set_state("LISTENING")
