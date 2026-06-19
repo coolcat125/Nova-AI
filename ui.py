@@ -2014,7 +2014,7 @@ class MainWindow(QMainWindow):
                               f"border-bottom: 1px solid {C.BORDER}; padding-bottom: 2px; margin-top: 4px;")
         lay.addWidget(ver_lbl)
 
-        self._known_vers = ["v2.0.5", "v2.0.4", "v2.0.3", "v2.0.1", "v2.0.0", "v1.0.0"]
+        self._known_vers = ["v3.0.0", "v2.0.8", "v2.0.7", "v2.0.6", "v2.0.5", "v2.0.4", "v2.0.3", "v2.0.1", "v2.0.0", "v1.0.0"]
         self._ver_combo = QComboBox()
         self._ver_combo.setFont(QFont("Courier New", 11))
         self._ver_combo.addItem(f"v{__version__} (current)")
