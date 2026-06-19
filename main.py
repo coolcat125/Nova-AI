@@ -539,6 +539,7 @@ class NovaLive:
         self._speaking_lock = threading.Lock()
         self.ui.on_text_command = self._on_text_command
         self._turn_done_event: asyncio.Event | None = None
+        self._bridge_turn   = False
 
     def _on_text_command(self, text: str):
         if not self._loop or not self.session:
@@ -737,7 +738,7 @@ class NovaLive:
                 self.speak("Goodbye, sir.")
                 def _shutdown():
                     import time, os
-                    time.sleep(1)
+                    time.sleep(3)
                     os._exit(0)
                 threading.Thread(target=_shutdown, daemon=True).start()
 
@@ -815,7 +816,7 @@ class NovaLive:
     async def _receive_audio(self):
         print("[Nova] Recv started")
         self.ui.write_log("[Nova] Recv started")
-        out_buf, in_buf = [], []
+        out_buf, in_buf, spoken_buf = [], [], []
 
         try:
             while True:
@@ -824,18 +825,34 @@ class NovaLive:
                     if response.data:
                         if self._turn_done_event and self._turn_done_event.is_set():
                             self._turn_done_event.clear()
-                        self.audio_in_queue.put_nowait(response.data)
+                        if not self._bridge_turn:
+                            self.audio_in_queue.put_nowait(response.data)
 
                     if response.server_content:
                         sc = response.server_content
 
+                        txt = None
+                        spoken = False
                         if sc.output_transcription and sc.output_transcription.text:
                             txt = _clean_transcript(sc.output_transcription.text)
-                            if txt:
-                                out_buf.append(txt)
-                                full_out = " ".join(out_buf).strip()
-                                if full_out:
-                                    self.ui.write_nova(full_out)
+                            spoken = True
+                        elif sc.model_turn and sc.model_turn.parts:
+                            txt = "".join(p.text for p in sc.model_turn.parts if hasattr(p, "text") and p.text)
+                            txt = _clean_transcript(txt)
+                        if txt:
+                            out_buf.append(txt)
+                            if spoken:
+                                spoken_buf.append(txt)
+                                full_spoken = " ".join(spoken_buf).strip()
+                                if full_spoken:
+                                    self.ui.write_nova(full_spoken)
+                                    bridge = getattr(self.ui._win, "_bridge", None)
+                                    if bridge and self.ui._win._bridge_active:
+                                        try:
+                                            bridge.send_message(full_spoken)
+                                        except Exception:
+                                            pass
+                            full_out = " ".join(out_buf).strip()
 
                         if sc.input_transcription and sc.input_transcription.text:
                             txt = _clean_transcript(sc.input_transcription.text)
@@ -852,7 +869,19 @@ class NovaLive:
                             in_buf = []
 
                             self.ui.finish_nova()
+
+                            full_out = " ".join(out_buf).strip()
+                            self._bridge_turn = False
+                            if spoken_buf or out_buf:
+                                bridge = getattr(self.ui._win, "_bridge", None)
+                                if bridge and self.ui._win._bridge_active:
+                                    try:
+                                        site_text = " ".join(spoken_buf).strip() if spoken_buf else full_out
+                                        bridge.send_message(site_text)
+                                    except Exception:
+                                        pass
                             out_buf = []
+                            spoken_buf = []
 
                     if response.tool_call:
                         fn_responses = []
@@ -897,7 +926,7 @@ class NovaLive:
                         self._turn_done_event.clear()
                     continue
                 self.set_speaking(True)
-                if self.ui.deafened:
+                if self.ui.deafened or self._bridge_turn:
                     continue
                 await asyncio.to_thread(stream.write, chunk)
         except Exception as e:
@@ -936,6 +965,14 @@ class NovaLive:
                     self.ui.set_state("LISTENING")
                     self.ui.write_log(f"SYS: Nova {__version__} online.")
                     get_scheduler().start()
+
+                    self.ui._win._gemini_loop = self._loop
+                    self.ui._win._gemini_session = session
+                    self.ui._win._nova_client = self
+                    bridge = getattr(self.ui._win, "_bridge", None)
+                    if bridge and self.ui._win._bridge_active:
+                        bridge.set_gemini(self._loop, session, self)
+                        self.ui.write_log("SYS: Chat on site ready.")
 
                     tg.create_task(self._send_realtime())
                     tg.create_task(self._listen_audio())

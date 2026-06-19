@@ -25,7 +25,9 @@ python-dotenv
 python-pptx
 pywinauto
 requests
+supabase
 send2trash
 sounddevice
 win10toast
+websockets
 youtube-transcript-api

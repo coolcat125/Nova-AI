@@ -1567,13 +1567,107 @@ class SetupOverlay(QWidget):
             w.setFixedHeight(max(24, int(w.height() * s)))
 
 
+class SiteLinkOverlay(QWidget):
+    def __init__(self, parent, win):
+        super().__init__(parent)
+        self._win = win
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setFixedSize(340, 220)
+        self.setStyleSheet(f"""
+            SiteLinkOverlay {{
+                background: rgba(0, 6, 10, 245);
+                border: 1px solid {C.BORDER_B};
+                border-radius: 8px;
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 18, 24, 18)
+        layout.setSpacing(6)
+
+        header = QLabel("CHAT ON SITE")
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setFont(QFont("Courier New", 10, QFont.Weight.Bold))
+        header.setStyleSheet(f"color: {C.PRI_DIM}; background: transparent;")
+        layout.addWidget(header)
+
+        self._code_lbl = QLabel("...")
+        self._code_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._code_lbl.setFont(QFont("Courier New", 22, QFont.Weight.Bold))
+        self._code_lbl.setStyleSheet(f"color: {C.ACC2}; background: transparent; padding: 4px 0;")
+        layout.addWidget(self._code_lbl)
+
+        copy_btn = QPushButton("COPY CODE")
+        copy_btn.setFixedHeight(30)
+        copy_btn.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
+        copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        copy_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {C.PRI};
+                border: 1px solid {C.BORDER_B}; border-radius: 4px;
+            }}
+            QPushButton:hover {{ background: {C.PRI_GHO}; }}
+        """)
+        copy_btn.clicked.connect(self._copy)
+        layout.addWidget(copy_btn)
+
+        self._status_lbl = QLabel("")
+        self._status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._status_lbl.setFont(QFont("Courier New", 9))
+        self._status_lbl.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent;")
+        self._status_lbl.setWordWrap(True)
+        layout.addWidget(self._status_lbl)
+
+        close_btn = QPushButton("CLOSE")
+        close_btn.setFixedHeight(26)
+        close_btn.setFont(QFont("Courier New", 8, QFont.Weight.Bold))
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {C.TEXT_DIM};
+                border: 1px solid {C.BORDER}; border-radius: 4px;
+            }}
+            QPushButton:hover {{ color: {C.TEXT}; border: 1px solid {C.BORDER_B}; }}
+        """)
+        close_btn.clicked.connect(self._close)
+        layout.addWidget(close_btn)
+
+    def set_code(self, code: str):
+        self._code_lbl.setText(code)
+        self._status_lbl.setText("Go to asknova.vercel.app/bridge on your phone")
+
+    def set_status(self, text: str):
+        self._status_lbl.setText(text)
+
+    def center_on_parent(self):
+        p = self.parent()
+        if p:
+            px = (p.width() - self.width()) // 2
+            py = (p.height() - self.height()) // 2
+            self.move(px, py)
+
+    def _copy(self):
+        code = self._code_lbl.text()
+        if code and code != "...":
+            QApplication.clipboard().setText(code)
+            orig = self._status_lbl.text()
+            self._status_lbl.setText("Copied!")
+            QTimer.singleShot(2000, lambda: self._status_lbl.setText(orig))
+
+    def _close(self):
+        self.hide()
+        self._win._show_bridge_mini()
+
 class MainWindow(QMainWindow):
+
     _log_sig     = pyqtSignal(str)
     _nova_sig    = pyqtSignal(str)
     _nova_end_sig = pyqtSignal()
     _state_sig   = pyqtSignal(str)
     _update_sig  = pyqtSignal(dict)
     _dl_done_sig = pyqtSignal(str)
+    _bridge_code_sig = pyqtSignal(str)
+    _bridge_log_sig  = pyqtSignal(str)
 
     def __init__(self, face_path: str = ""):
         super().__init__()
@@ -1596,6 +1690,15 @@ class MainWindow(QMainWindow):
         self._muted           = False
         self._deafened        = False
         self._current_file: str | None = None
+        self._bridge_active  = False
+        self._bridge_code    = ""
+        self._bridge: "TextBridge | None" = None
+        self._bridge_overlay: SiteLinkOverlay | None = None
+        self._gemini_loop = None
+        self._gemini_session = None
+
+        self._bridge_code_sig.connect(self._on_bridge_code)
+        self._bridge_log_sig.connect(self._on_bridge_log)
 
         central = QWidget()
         central.setStyleSheet(f"background: {C.BG};")
@@ -1865,6 +1968,45 @@ class MainWindow(QMainWindow):
         lay.addWidget(info_panel)
         lay.addStretch()
 
+        # chat on site mini panel
+        self._mini_hdr = QLabel("CHAT ON SITE")
+        self._mini_hdr.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
+        self._mini_hdr.setStyleSheet(f"color: {C.PRI_DIM}; background: transparent; "
+                                     f"border-bottom: 1px solid {C.BORDER}; padding-bottom: 2px;")
+        self._mini_hdr.setVisible(False)
+        lay.addWidget(self._mini_hdr)
+        mini_code_row = QHBoxLayout()
+        mini_code_row.setSpacing(4)
+        self._mini_code_lbl = QLabel("")
+        self._mini_code_lbl.setFont(QFont("Courier New", 13, QFont.Weight.Bold))
+        self._mini_code_lbl.setStyleSheet(f"color: {C.ACC2}; background: transparent; padding: 2px 0;")
+        self._mini_code_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._mini_code_lbl.setVisible(False)
+        mini_code_row.addWidget(self._mini_code_lbl, 1)
+        self._mini_copy_btn = QPushButton("COPY")
+        self._mini_copy_btn.setFixedSize(48, 22)
+        self._mini_copy_btn.setFont(QFont("Courier New", 7, QFont.Weight.Bold))
+        self._mini_copy_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {C.PRI_DIM};
+                border: 1px solid {C.BORDER}; border-radius: 3px;
+                padding: 0 4px;
+            }}
+            QPushButton:hover {{ color: {C.PRI}; border: 1px solid {C.BORDER_B}; }}
+        """)
+        self._mini_copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._mini_copy_btn.clicked.connect(self._copy_mini_code)
+        self._mini_copy_btn.setVisible(False)
+        mini_code_row.addWidget(self._mini_copy_btn)
+        lay.addLayout(mini_code_row)
+        self._mini_status_lbl = QLabel("")
+        self._mini_status_lbl.setFont(QFont("Courier New", 8))
+        self._mini_status_lbl.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent;")
+        self._mini_status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._mini_status_lbl.setWordWrap(True)
+        self._mini_status_lbl.setVisible(False)
+        lay.addWidget(self._mini_status_lbl)
+
         # version selector
         ver_lbl = QLabel("VERSION")
         ver_lbl.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
@@ -2015,6 +2157,22 @@ class MainWindow(QMainWindow):
         upd_btn.clicked.connect(self._manual_update_check)
         lay.addWidget(upd_btn)
 
+        self._bridge_btn = QPushButton("CHAT ON SITE")
+        self._bridge_btn.setFixedHeight(30)
+        self._bridge_btn.setFont(QFont("Courier New", 10, QFont.Weight.Bold))
+        self._bridge_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._bridge_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {C.ACC};
+                border: 1px solid {C.BORDER}; border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                color: {C.TEXT}; border: 1px solid {C.BORDER_B};
+            }}
+        """)
+        self._bridge_btn.clicked.connect(self._toggle_bridge)
+        lay.addWidget(self._bridge_btn)
+
         return w
 
     def _build_input_row(self) -> QHBoxLayout:
@@ -2142,6 +2300,96 @@ class MainWindow(QMainWindow):
         self._log.append_log("SYS: Checking for updates...")
         from update import check_for_update_async
         check_for_update_async(callback=lambda r: self._update_sig.emit(r))
+
+    def _on_bridge_code(self, code: str):
+        self._bridge_code = code
+        if self._bridge_overlay:
+            self._bridge_overlay.set_code(code)
+        self._mini_code_lbl.setText(code)
+
+    def _show_bridge_mini(self):
+        self._mini_hdr.setVisible(True)
+        self._mini_code_lbl.setVisible(True)
+        self._mini_copy_btn.setVisible(True)
+        self._mini_status_lbl.setVisible(True)
+        if self._bridge_code:
+            self._mini_code_lbl.setText(self._bridge_code)
+            self._mini_status_lbl.setText("Go to asknova.vercel.app/bridge on your phone")
+        self._bridge_btn.setText("DISCONNECT")
+
+    def _hide_bridge_mini(self):
+        self._mini_hdr.setVisible(False)
+        self._mini_code_lbl.setVisible(False)
+        self._mini_copy_btn.setVisible(False)
+        self._mini_status_lbl.setVisible(False)
+
+    def _copy_mini_code(self):
+        if self._bridge_code:
+            QApplication.clipboard().setText(self._bridge_code)
+            t = self._mini_status_lbl.text()
+            self._mini_status_lbl.setText("Copied!")
+            QTimer.singleShot(2000, lambda: self._mini_status_lbl.setText(t))
+
+    def _on_bridge_log(self, msg: str):
+        self._log.append_log(msg)
+
+    def _toggle_bridge(self):
+        if self._bridge_active:
+            self._stop_bridge()
+        else:
+            self._bridge_active = True
+            self._hide_bridge_mini()
+            if self._bridge_overlay:
+                self._bridge_overlay.hide()
+            ov = SiteLinkOverlay(self.centralWidget(), self)
+            ov.set_code("...")
+            ov.set_status("Connecting...")
+            ov.center_on_parent()
+            ov.show()
+            self._bridge_overlay = ov
+            self._bridge_btn.setText("DISCONNECT")
+            self._bridge_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: #140006; color: {C.MUTED_C};
+                    border: 1px solid {C.MUTED_C}; border-radius: 4px;
+                }}
+                QPushButton:hover {{ background: #1e000a; }}
+            """)
+            from text_bridge import TextBridge
+            if self._bridge is None:
+                self._bridge = TextBridge()
+                self._bridge.set_callbacks(
+                    on_message=lambda t: self._log.append_log(f"[Site] {t[:60]}"),
+                    pairing=lambda c: self._bridge_code_sig.emit(c),
+                    log=lambda m: self._bridge_log_sig.emit(m),
+                )
+            self._log.append_log("SYS: Starting chat on site...")
+            self._bridge.start()
+            if self._gemini_loop and self._gemini_session:
+                self._bridge.set_gemini(self._gemini_loop, self._gemini_session, getattr(self, "_nova_client", None))
+                self._log.append_log("SYS: Chat on site ready.")
+
+    def _stop_bridge(self):
+        self._bridge_active = False
+        self._bridge_code = ""
+        if self._bridge_overlay:
+            self._bridge_overlay.hide()
+            self._bridge_overlay = None
+        if self._bridge:
+            self._log.append_log("SYS: Stopping bridge...")
+            self._bridge.stop()
+        self._bridge_btn.setText("CHAT ON SITE")
+        self._hide_bridge_mini()
+        self._bridge_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {C.ACC};
+                border: 1px solid {C.BORDER}; border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                color: {C.TEXT}; border: 1px solid {C.BORDER_B};
+            }}
+        """)
+        self._log.append_log("SYS: Chat on site stopped.")
 
     def _toggle_mute(self):
         if self._deafened:
@@ -2306,6 +2554,11 @@ class MainWindow(QMainWindow):
             self._orb_anim = anim
         self._apply_state("LISTENING")
         self._log.append_log(f"SYS: Initialised. OS={os_name.upper()}. Nova online.")
+
+    def closeEvent(self, event):
+        if self._bridge:
+            self._stop_bridge()
+        super().closeEvent(event)
 
 class _RootShim:
     def __init__(self, app: QApplication):
