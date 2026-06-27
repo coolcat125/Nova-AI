@@ -364,7 +364,7 @@ class HudCanvas(QWidget):
                 math.sin(phi) * math.cos(theta) * r,
                 math.sin(phi) * math.sin(theta) * r,
                 math.cos(phi) * r,
-                12 + random.random() * 14,
+                6 + random.random() * 7,
                 270 + random.random() * 40,
                 0.6 + random.random() * 0.4,
                 random.random() * 2 * math.pi,
@@ -378,7 +378,7 @@ class HudCanvas(QWidget):
                 math.sin(phi) * math.cos(theta) * r,
                 math.sin(phi) * math.sin(theta) * r,
                 math.cos(phi) * r,
-                10 + random.random() * 10,
+                5 + random.random() * 5,
                 290 + random.random() * 30,
                 0.5 + random.random() * 0.3,
                 random.random() * 2 * math.pi,
@@ -646,9 +646,17 @@ class HudCanvas(QWidget):
                 py = cy + ry * sf * sc
                 rd = dr * sc * (1 + math.sin(pv) * 0.12) * (1 + pulse)
                 a = int(alpha * (0.5 + depth * 0.5) * 255)
-                c = QColor()
-                c.setHsv(int(hue), 200, 230, a)
-                p.setBrush(QBrush(c))
+                base = QColor()
+                base.setHsv(int(hue), 200, 230, a)
+                gg = QRadialGradient(QPointF(px - rd * 0.3, py - rd * 0.3), rd * 1.2)
+                highlight = QColor()
+                highlight.setHsv(int(hue), 160, 255, a)
+                shadow = QColor()
+                shadow.setHsv(int(hue), 230, 160, a)
+                gg.setColorAt(0, highlight)
+                gg.setColorAt(0.5, base)
+                gg.setColorAt(1, shadow)
+                p.setBrush(QBrush(gg))
                 p.setPen(Qt.PenStyle.NoPen)
                 p.drawEllipse(QPointF(px, py), rd, rd)
 
