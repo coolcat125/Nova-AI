@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "what can you doo"
+    },
+    {
+      "role": "assistant",
+      "content": "I can perform many tasks, including opening apps and websites, searching the web, managing files and folders, setting reminders, controlling computer settings like volume and brightness, and even coding and processing files."
+    }
+  ]
+}

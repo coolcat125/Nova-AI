@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "make a calc in python"
+    },
+    {
+      "role": "assistant",
+      "content": "Code for a simple calculator has been written and saved to `calculator.py`."
+    }
+  ]
+}

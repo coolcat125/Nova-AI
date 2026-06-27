@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "wgat can you do"
+    },
+    {
+      "role": "assistant",
+      "content": "I can perform many tasks, including opening apps and websites, searching the web, checking weather, sending messages, setting reminders, controlling YouTube, analyzing the screen, managing files, writing code, processing files, and much more."
+    }
+  ]
+}

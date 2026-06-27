@@ -1,0 +1,33 @@
+﻿pydantic-core>=2.27.0
+comtypes; sys_platform == 'win32'
+duckduckgo-search
+google-genai
+openai
+mss
+numpy
+opencv-python
+openpyxl
+pandas
+pdfplumber
+Pillow
+playwright
+plyer
+psutil
+pyautogui
+pycaw; sys_platform == 'win32'
+pygetwindow
+pyperclip
+PyPDF2
+pyqt6
+pydub
+python-docx
+python-dotenv
+python-pptx
+pywinauto; sys_platform == 'win32'
+requests
+supabase
+send2trash
+sounddevice
+win10toast; sys_platform == 'win32'
+websockets
+youtube-transcript-api

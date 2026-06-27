@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "open calculator"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, I cannot open applications on this operating system."
+    }
+  ]
+}

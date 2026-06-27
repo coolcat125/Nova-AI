@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "what cna you do\\"
+    },
+    {
+      "role": "assistant",
+      "content": "I can open apps and websites, search the web, send messages, set reminders, control your computer and browser, manage files, write code, process files, and even update games on Steam and Epic."
+    }
+  ]
+}

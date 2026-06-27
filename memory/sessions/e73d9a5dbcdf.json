@@ -1,0 +1,16 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "help me with my homework"
+    },
+    {
+      "role": "user",
+      "content": "he;lo?"
+    },
+    {
+      "role": "user",
+      "content": "hi"
+    }
+  ]
+}

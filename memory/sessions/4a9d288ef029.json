@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "how do you owrk"
+    },
+    {
+      "role": "assistant",
+      "content": "I am an efficient assistant that can perform many tasks. I can open applications, search the web, manage files and system settings, process documents and media, write code, set reminders, and much more to streamline your workflow."
+    }
+  ]
+}

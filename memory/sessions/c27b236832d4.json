@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "What"
+    },
+    {
+      "role": "assistant",
+      "content": "I can help with many things! I can open apps and websites, search the web, check weather, send messages, set reminders, control YouTube, manage files, write code, and more. What would you like to do?"
+    }
+  ]
+}

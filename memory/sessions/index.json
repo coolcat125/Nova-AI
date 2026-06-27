@@ -1,0 +1,704 @@
+{
+  "sessions": [
+    {
+      "id": "3e2bc4513abd",
+      "title": "New session",
+      "created_at": "2026-06-27T13:22:47",
+      "updated_at": "2026-06-27T13:22:52",
+      "message_count": 0
+    },
+    {
+      "id": "3b472adef3e1",
+      "title": "New session",
+      "created_at": "2026-06-27T13:22:36",
+      "updated_at": "2026-06-27T13:22:39",
+      "message_count": 0
+    },
+    {
+      "id": "ddad416bd90e",
+      "title": "New session",
+      "created_at": "2026-06-27T13:18:59",
+      "updated_at": "2026-06-27T13:19:11",
+      "message_count": 0
+    },
+    {
+      "id": "e93471efd538",
+      "title": "New session",
+      "created_at": "2026-06-27T13:17:42",
+      "updated_at": "2026-06-27T13:17:54",
+      "message_count": 0
+    },
+    {
+      "id": "16a8613c70c2",
+      "title": "New session",
+      "created_at": "2026-06-27T12:16:41",
+      "updated_at": "2026-06-27T12:16:41",
+      "message_count": 0
+    },
+    {
+      "id": "f02f2e2daa4b",
+      "title": "New session",
+      "created_at": "2026-06-24T15:08:37",
+      "updated_at": "2026-06-24T15:09:12",
+      "message_count": 2
+    },
+    {
+      "id": "31a8d7900b22",
+      "title": "Open Calculator Refusal",
+      "created_at": "2026-06-24T14:49:07",
+      "updated_at": "2026-06-24T14:50:57",
+      "message_count": 2
+    },
+    {
+      "id": "a3fe8643191b",
+      "title": "New session",
+      "created_at": "2026-06-24T14:46:57",
+      "updated_at": "2026-06-24T14:48:39",
+      "message_count": 0
+    },
+    {
+      "id": "32258a281136",
+      "title": "New session",
+      "created_at": "2026-06-23T15:54:59",
+      "updated_at": "2026-06-23T15:55:31",
+      "message_count": 0
+    },
+    {
+      "id": "b630df023919",
+      "title": "New session",
+      "created_at": "2026-06-22T21:16:33",
+      "updated_at": "2026-06-22T21:16:37",
+      "message_count": 0
+    },
+    {
+      "id": "9a2463f353fd",
+      "title": "New session",
+      "created_at": "2026-06-22T20:42:17",
+      "updated_at": "2026-06-22T20:42:59",
+      "message_count": 0
+    },
+    {
+      "id": "89b2934f7bd6",
+      "title": "Open Calc Loop",
+      "created_at": "2026-06-22T20:27:02",
+      "updated_at": "2026-06-22T20:31:41",
+      "message_count": 15
+    },
+    {
+      "id": "71f280ce7b5a",
+      "title": "New session",
+      "created_at": "2026-06-22T20:25:31",
+      "updated_at": "2026-06-22T20:25:31",
+      "message_count": 0
+    },
+    {
+      "id": "4a690b5d8af0",
+      "title": "New session",
+      "created_at": "2026-06-22T20:24:49",
+      "updated_at": "2026-06-22T20:25:31",
+      "message_count": 0
+    },
+    {
+      "id": "93effcf87320",
+      "title": "New session",
+      "created_at": "2026-06-22T20:24:05",
+      "updated_at": "2026-06-22T20:24:05",
+      "message_count": 0
+    },
+    {
+      "id": "74f47d0722ee",
+      "title": "New session",
+      "created_at": "2026-06-22T20:23:18",
+      "updated_at": "2026-06-22T20:24:05",
+      "message_count": 0
+    },
+    {
+      "id": "fa4775b05211",
+      "title": "Nova Checks Screen",
+      "created_at": "2026-06-21T12:29:48",
+      "updated_at": "2026-06-21T12:30:14",
+      "message_count": 2
+    },
+    {
+      "id": "30852476ccf3",
+      "title": "Let's See Your Screen",
+      "created_at": "2026-06-21T12:26:42",
+      "updated_at": "2026-06-21T12:27:10",
+      "message_count": 2
+    },
+    {
+      "id": "3596e42cad2e",
+      "title": "New session",
+      "created_at": "2026-06-21T12:25:26",
+      "updated_at": "2026-06-21T12:25:52",
+      "message_count": 1
+    },
+    {
+      "id": "cf36ffd5ddef",
+      "title": "Describe my Screen",
+      "created_at": "2026-06-21T12:23:18",
+      "updated_at": "2026-06-21T12:24:10",
+      "message_count": 5
+    },
+    {
+      "id": "70e842fd9861",
+      "title": "Look at My Screen",
+      "created_at": "2026-06-21T12:22:09",
+      "updated_at": "2026-06-21T12:22:52",
+      "message_count": 4
+    },
+    {
+      "id": "3de1ddc01627",
+      "title": "New session",
+      "created_at": "2026-06-21T12:21:14",
+      "updated_at": "2026-06-21T12:21:39",
+      "message_count": 1
+    },
+    {
+      "id": "05fc04b094c9",
+      "title": "Screen Analysis Denied",
+      "created_at": "2026-06-21T12:16:01",
+      "updated_at": "2026-06-21T12:17:16",
+      "message_count": 4
+    },
+    {
+      "id": "5f7a6c205f7e",
+      "title": "New session",
+      "created_at": "2026-06-21T12:12:10",
+      "updated_at": "2026-06-21T12:12:10",
+      "message_count": 0
+    },
+    {
+      "id": "f565da3efaab",
+      "title": "New session",
+      "created_at": "2026-06-21T12:09:18",
+      "updated_at": "2026-06-21T12:09:18",
+      "message_count": 0
+    },
+    {
+      "id": "c3e6044a2c2c",
+      "title": "New session",
+      "created_at": "2026-06-21T12:06:53",
+      "updated_at": "2026-06-21T12:06:53",
+      "message_count": 0
+    },
+    {
+      "id": "24c56dfcbf80",
+      "title": "New session",
+      "created_at": "2026-06-21T12:02:24",
+      "updated_at": "2026-06-21T12:02:24",
+      "message_count": 0
+    },
+    {
+      "id": "c0f0e1437a24",
+      "title": "New session",
+      "created_at": "2026-06-21T11:38:39",
+      "updated_at": "2026-06-21T11:38:39",
+      "message_count": 0
+    },
+    {
+      "id": "604efaad729a",
+      "title": "New session",
+      "created_at": "2026-06-21T11:38:12",
+      "updated_at": "2026-06-21T11:38:33",
+      "message_count": 0
+    },
+    {
+      "id": "68e5eddeb3b9",
+      "title": "New session",
+      "created_at": "2026-06-21T11:36:25",
+      "updated_at": "2026-06-21T11:37:11",
+      "message_count": 0
+    },
+    {
+      "id": "0e0671e7a81c",
+      "title": "New session",
+      "created_at": "2026-06-21T11:34:39",
+      "updated_at": "2026-06-21T11:34:58",
+      "message_count": 0
+    },
+    {
+      "id": "856f10e621b1",
+      "title": "New session",
+      "created_at": "2026-06-21T11:33:17",
+      "updated_at": "2026-06-21T11:33:58",
+      "message_count": 0
+    },
+    {
+      "id": "97774d5bf806",
+      "title": "New session",
+      "created_at": "2026-06-21T11:32:24",
+      "updated_at": "2026-06-21T11:32:37",
+      "message_count": 0
+    },
+    {
+      "id": "8f0fb21e8960",
+      "title": "New session",
+      "created_at": "2026-06-21T11:31:38",
+      "updated_at": "2026-06-21T11:31:51",
+      "message_count": 0
+    },
+    {
+      "id": "7b34b3815799",
+      "title": "New session",
+      "created_at": "2026-06-21T11:28:51",
+      "updated_at": "2026-06-21T11:29:17",
+      "message_count": 0
+    },
+    {
+      "id": "aac8ea2f7a00",
+      "title": "Greeting and Help",
+      "created_at": "2026-06-21T11:02:37",
+      "updated_at": "2026-06-21T11:04:32",
+      "message_count": 2
+    },
+    {
+      "id": "eb4d5e1ad682",
+      "title": "New session",
+      "created_at": "2026-06-20T22:30:54",
+      "updated_at": "2026-06-20T22:34:15",
+      "message_count": 1
+    },
+    {
+      "id": "3b41f73eb335",
+      "title": "Uppercase Number Code Guessing Odds",
+      "created_at": "2026-06-20T22:27:42",
+      "updated_at": "2026-06-20T22:30:48",
+      "message_count": 4
+    },
+    {
+      "id": "12317dbfc8a3",
+      "title": "New session",
+      "created_at": "2026-06-20T22:27:12",
+      "updated_at": "2026-06-20T22:27:36",
+      "message_count": 0
+    },
+    {
+      "id": "9ea8cf4ebe51",
+      "title": "New session",
+      "created_at": "2026-06-20T22:26:14",
+      "updated_at": "2026-06-20T22:26:14",
+      "message_count": 0
+    },
+    {
+      "id": "e4187e665920",
+      "title": "New session",
+      "created_at": "2026-06-20T22:25:46",
+      "updated_at": "2026-06-20T22:26:07",
+      "message_count": 0
+    },
+    {
+      "id": "32b53ccca091",
+      "title": "How Nova Works",
+      "created_at": "2026-06-20T21:45:28",
+      "updated_at": "2026-06-20T21:46:54",
+      "message_count": 2
+    },
+    {
+      "id": "b1a24ff73c97",
+      "title": "Nova: How I Work",
+      "created_at": "2026-06-20T21:43:41",
+      "updated_at": "2026-06-20T21:44:31",
+      "message_count": 2
+    },
+    {
+      "id": "7629a6151abc",
+      "title": "How Can I Help?",
+      "created_at": "2026-06-20T21:40:09",
+      "updated_at": "2026-06-20T21:40:49",
+      "message_count": 4
+    },
+    {
+      "id": "315bcb61662a",
+      "title": "How Nova Works",
+      "created_at": "2026-06-20T21:35:38",
+      "updated_at": "2026-06-20T21:36:29",
+      "message_count": 2
+    },
+    {
+      "id": "4a9d288ef029",
+      "title": "How Nova Works",
+      "created_at": "2026-06-20T21:30:55",
+      "updated_at": "2026-06-20T21:32:33",
+      "message_count": 2
+    },
+    {
+      "id": "b82aee6bd119",
+      "title": "What Nova Can Do",
+      "created_at": "2026-06-20T21:30:07",
+      "updated_at": "2026-06-20T21:30:55",
+      "message_count": 2
+    },
+    {
+      "id": "b1f22f0c707c",
+      "title": "Homework Help",
+      "created_at": "2026-06-20T21:25:56",
+      "updated_at": "2026-06-20T21:26:34",
+      "message_count": 2
+    },
+    {
+      "id": "e73d9a5dbcdf",
+      "title": "New session",
+      "created_at": "2026-06-20T21:24:35",
+      "updated_at": "2026-06-20T21:25:46",
+      "message_count": 3
+    },
+    {
+      "id": "0dc433937916",
+      "title": "Nova's Capabilities",
+      "created_at": "2026-06-20T21:21:30",
+      "updated_at": "2026-06-20T21:22:12",
+      "message_count": 2
+    },
+    {
+      "id": "22959daf2f0c",
+      "title": "What Nova Can Do",
+      "created_at": "2026-06-20T21:20:26",
+      "updated_at": "2026-06-20T21:21:30",
+      "message_count": 2
+    },
+    {
+      "id": "c7ebfcfb75f5",
+      "title": "New session",
+      "created_at": "2026-06-20T21:17:08",
+      "updated_at": "2026-06-20T21:18:02",
+      "message_count": 2
+    },
+    {
+      "id": "495bcf7e2a23",
+      "title": "Session Jun 20  21:15",
+      "created_at": "2026-06-20T21:15:56",
+      "updated_at": "2026-06-20T21:16:03",
+      "message_count": 0
+    },
+    {
+      "id": "1559b3d8c96f",
+      "title": "Session Jun 20  21:14",
+      "created_at": "2026-06-20T21:14:48",
+      "updated_at": "2026-06-20T21:14:59",
+      "message_count": 0
+    },
+    {
+      "id": "645c826a69e2",
+      "title": "Session Jun 20  21:12",
+      "created_at": "2026-06-20T21:12:35",
+      "updated_at": "2026-06-20T21:12:50",
+      "message_count": 0
+    },
+    {
+      "id": "6048fdc2c8f8",
+      "title": "Session Jun 20  21:01",
+      "created_at": "2026-06-20T21:01:10",
+      "updated_at": "2026-06-20T21:01:29",
+      "message_count": 0
+    },
+    {
+      "id": "08e578815af9",
+      "title": "Session Jun 20  20:59",
+      "created_at": "2026-06-20T20:59:49",
+      "updated_at": "2026-06-20T21:00:00",
+      "message_count": 0
+    },
+    {
+      "id": "e7bfbf51ad9d",
+      "title": "Session Jun 20  20:58",
+      "created_at": "2026-06-20T20:58:57",
+      "updated_at": "2026-06-20T20:59:06",
+      "message_count": 0
+    },
+    {
+      "id": "8750ad789829",
+      "title": "Session Jun 20  20:56",
+      "created_at": "2026-06-20T20:56:39",
+      "updated_at": "2026-06-20T20:57:48",
+      "message_count": 0
+    },
+    {
+      "id": "fc37d3d87315",
+      "title": "Session Jun 20  20:54",
+      "created_at": "2026-06-20T20:54:21",
+      "updated_at": "2026-06-20T20:54:39",
+      "message_count": 0
+    },
+    {
+      "id": "021886db0884",
+      "title": "Session Jun 20  20:53",
+      "created_at": "2026-06-20T20:53:06",
+      "updated_at": "2026-06-20T20:54:13",
+      "message_count": 0
+    },
+    {
+      "id": "9f8bb81b1c9b",
+      "title": "Session Jun 20  20:50",
+      "created_at": "2026-06-20T20:50:27",
+      "updated_at": "2026-06-20T20:52:01",
+      "message_count": 0
+    },
+    {
+      "id": "9e3797636821",
+      "title": "Session Jun 20  20:48",
+      "created_at": "2026-06-20T20:48:31",
+      "updated_at": "2026-06-20T20:48:52",
+      "message_count": 0
+    },
+    {
+      "id": "ce6ec43fbf3f",
+      "title": "Session Jun 20  20:46",
+      "created_at": "2026-06-20T20:46:30",
+      "updated_at": "2026-06-20T20:47:08",
+      "message_count": 0
+    },
+    {
+      "id": "84d38be14793",
+      "title": "Session Jun 20  20:44",
+      "created_at": "2026-06-20T20:44:22",
+      "updated_at": "2026-06-20T20:45:18",
+      "message_count": 0
+    },
+    {
+      "id": "b6cffb0b7dcd",
+      "title": "Session Jun 20  20:43",
+      "created_at": "2026-06-20T20:43:40",
+      "updated_at": "2026-06-20T20:44:07",
+      "message_count": 0
+    },
+    {
+      "id": "82e5aff6dbeb",
+      "title": "Session Jun 20  20:40",
+      "created_at": "2026-06-20T20:40:02",
+      "updated_at": "2026-06-20T20:43:33",
+      "message_count": 0
+    },
+    {
+      "id": "30ffbe9ca7f6",
+      "title": "Greeting and Prompt",
+      "created_at": "2026-06-20T19:37:05",
+      "updated_at": "2026-06-20T19:38:10",
+      "message_count": 3
+    },
+    {
+      "id": "bdde9e760cfd",
+      "title": "Session Jun 20  19:35",
+      "created_at": "2026-06-20T19:35:53",
+      "updated_at": "2026-06-20T19:36:21",
+      "message_count": 0
+    },
+    {
+      "id": "a6663b524cad",
+      "title": "Session Jun 20  19:33",
+      "created_at": "2026-06-20T19:33:19",
+      "updated_at": "2026-06-20T19:33:48",
+      "message_count": 0
+    },
+    {
+      "id": "dac7f8de1876",
+      "title": "Session Jun 20  19:30",
+      "created_at": "2026-06-20T19:30:20",
+      "updated_at": "2026-06-20T19:30:31",
+      "message_count": 0
+    },
+    {
+      "id": "05afe7648d60",
+      "title": "Session Jun 20  19:30",
+      "created_at": "2026-06-20T19:30:14",
+      "updated_at": "2026-06-20T19:30:20",
+      "message_count": 0
+    },
+    {
+      "id": "86ff26615505",
+      "title": "Session Jun 20  19:30",
+      "created_at": "2026-06-20T19:30:11",
+      "updated_at": "2026-06-20T19:30:14",
+      "message_count": 0
+    },
+    {
+      "id": "49e1b4d33e91",
+      "title": "Nova: Calculator Opened",
+      "created_at": "2026-06-20T19:27:55",
+      "updated_at": "2026-06-20T19:28:52",
+      "message_count": 2
+    },
+    {
+      "id": "456054203051",
+      "title": "Session Jun 20  19:26",
+      "created_at": "2026-06-20T19:26:38",
+      "updated_at": "2026-06-20T19:26:41",
+      "message_count": 0
+    },
+    {
+      "id": "ebba8fbbd9b1",
+      "title": "Session Jun 20  19:25",
+      "created_at": "2026-06-20T19:25:06",
+      "updated_at": "2026-06-20T19:25:44",
+      "message_count": 1
+    },
+    {
+      "id": "9b3573fc0a47",
+      "title": "Session Jun 20  19:22",
+      "created_at": "2026-06-20T19:22:49",
+      "updated_at": "2026-06-20T19:23:27",
+      "message_count": 1
+    },
+    {
+      "id": "d2f21b7d7fde",
+      "title": "Session Jun 20  19:09",
+      "created_at": "2026-06-20T19:09:17",
+      "updated_at": "2026-06-20T19:09:51",
+      "message_count": 0
+    },
+    {
+      "id": "3f457452b84b",
+      "title": "Session Jun 20  19:07",
+      "created_at": "2026-06-20T19:07:09",
+      "updated_at": "2026-06-20T19:07:34",
+      "message_count": 0
+    },
+    {
+      "id": "56ee60a3aeb4",
+      "title": "Session Jun 20  19:05",
+      "created_at": "2026-06-20T19:05:36",
+      "updated_at": "2026-06-20T19:05:54",
+      "message_count": 0
+    },
+    {
+      "id": "0316fa0ec363",
+      "title": "Session Jun 20  19:03",
+      "created_at": "2026-06-20T19:03:47",
+      "updated_at": "2026-06-20T19:04:37",
+      "message_count": 0
+    },
+    {
+      "id": "150fb4c3899b",
+      "title": "Session Jun 20  19:00",
+      "created_at": "2026-06-20T19:00:12",
+      "updated_at": "2026-06-20T19:00:58",
+      "message_count": 0
+    },
+    {
+      "id": "d9e4e4cb6313",
+      "title": "Session Jun 20  18:58",
+      "created_at": "2026-06-20T18:58:48",
+      "updated_at": "2026-06-20T18:58:52",
+      "message_count": 0
+    },
+    {
+      "id": "969836581fbf",
+      "title": "Session Jun 20  18:57",
+      "created_at": "2026-06-20T18:57:05",
+      "updated_at": "2026-06-20T18:57:27",
+      "message_count": 0
+    },
+    {
+      "id": "72a85b121cc1",
+      "title": "Session Jun 20  18:36",
+      "created_at": "2026-06-20T18:36:02",
+      "updated_at": "2026-06-20T18:36:35",
+      "message_count": 0
+    },
+    {
+      "id": "4f14a78840f3",
+      "title": "What Nova Can Do",
+      "created_at": "2026-06-20T18:32:47",
+      "updated_at": "2026-06-20T18:33:23",
+      "message_count": 2
+    },
+    {
+      "id": "4ea1fc159600",
+      "title": "Session Jun 20  18:29",
+      "created_at": "2026-06-20T18:29:01",
+      "updated_at": "2026-06-20T18:31:14",
+      "message_count": 2
+    },
+    {
+      "id": "d7650c27335a",
+      "title": "make a calc in python",
+      "created_at": "2026-06-20T18:25:08",
+      "updated_at": "2026-06-20T18:26:04",
+      "message_count": 2
+    },
+    {
+      "id": "2fcd1a90109d",
+      "title": "what can you do/.",
+      "created_at": "2026-06-20T18:23:52",
+      "updated_at": "2026-06-20T18:25:08",
+      "message_count": 2
+    },
+    {
+      "id": "576da965496b",
+      "title": "what else",
+      "created_at": "2026-06-20T18:17:26",
+      "updated_at": "2026-06-20T18:20:36",
+      "message_count": 10
+    },
+    {
+      "id": "9c28b32ab1f0",
+      "title": "what can you do",
+      "created_at": "2026-06-20T18:16:38",
+      "updated_at": "2026-06-20T18:17:26",
+      "message_count": 1
+    },
+    {
+      "id": "4ad32ae28a47",
+      "title": "Session Jun 20  17:46",
+      "created_at": "2026-06-20T17:46:38",
+      "updated_at": "2026-06-20T17:46:38",
+      "message_count": 0
+    },
+    {
+      "id": "c27b236832d4",
+      "title": "What",
+      "created_at": "2026-06-20T17:45:42",
+      "updated_at": "2026-06-20T17:46:38",
+      "message_count": 2
+    },
+    {
+      "id": "2c096335631f",
+      "title": "what else",
+      "created_at": "2026-06-20T17:39:06",
+      "updated_at": "2026-06-20T17:46:33",
+      "message_count": 4
+    },
+    {
+      "id": "71cfb9abfab0",
+      "title": "what else",
+      "created_at": "2026-06-20T17:37:15",
+      "updated_at": "2026-06-20T17:37:43",
+      "message_count": 2
+    },
+    {
+      "id": "b057b7ad2f18",
+      "title": "what can you do",
+      "created_at": "2026-06-20T17:36:39",
+      "updated_at": "2026-06-20T17:37:15",
+      "message_count": 1
+    },
+    {
+      "id": "9f9978764538",
+      "title": "what can you do",
+      "created_at": "2026-06-20T17:36:15",
+      "updated_at": "2026-06-20T17:36:49",
+      "message_count": 1
+    },
+    {
+      "id": "2c806601223b",
+      "title": "anything else",
+      "created_at": "2026-06-20T17:34:10",
+      "updated_at": "2026-06-20T17:34:30",
+      "message_count": 1
+    },
+    {
+      "id": "f526b1409209",
+      "title": "Session Jun 20  17:34",
+      "created_at": "2026-06-20T17:34:10",
+      "updated_at": "2026-06-20T17:36:52",
+      "message_count": 0
+    },
+    {
+      "id": "d123619bd69f",
+      "title": "what can you do",
+      "created_at": "2026-06-20T17:33:04",
+      "updated_at": "2026-06-20T17:34:10",
+      "message_count": 2
+    }
+  ]
+}

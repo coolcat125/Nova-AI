@@ -1,0 +1,64 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "user",
+      "content": "Open calc"
+    },
+    {
+      "role": "assistant",
+      "content": "Opened calculator."
+    },
+    {
+      "role": "assistant",
+      "content": "I've already opened the calculator."
+    },
+    {
+      "role": "user",
+      "content": "O pen a YouTu be video of a C PU work ing inside."
+    },
+    {
+      "role": "assistant",
+      "content": "Searching YouTube for a video of a CPU working inside. Playing YouTube video."
+    },
+    {
+      "role": "user",
+      "content": "<noise>"
+    },
+    {
+      "role": "assistant",
+      "content": "Adios!"
+    }
+  ]
+}

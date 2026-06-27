@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "what can you do"
+    },
+    {
+      "role": "assistant",
+      "content": "I can open apps and websites, search the web, check weather, send messages across platforms, set reminders, control YouTube, analyze your screen, manage files, write code, build projects, process files, control your computer and browser, update games and find flights."
+    }
+  ]
+}

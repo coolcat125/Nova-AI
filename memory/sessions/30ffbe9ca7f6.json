@@ -1,0 +1,16 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "."
+    },
+    {
+      "role": "assistant",
+      "content": "\u65e9\u4e0a\u597d! \u6709\u4ec0\u4e48 \u53ef\u4ee5 \u5e2e\u60a8 \u7684\u5417?"
+    },
+    {
+      "role": "user",
+      "content": "\u4f86"
+    }
+  ]
+}

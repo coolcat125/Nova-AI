@@ -1,0 +1,20 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "look at my screen"
+    },
+    {
+      "role": "assistant",
+      "content": "Let me analyze your screen. Screen analysis was denied by the user."
+    },
+    {
+      "role": "user",
+      "content": "look at my screen"
+    },
+    {
+      "role": "assistant",
+      "content": "Attempting screen analysis again."
+    }
+  ]
+}

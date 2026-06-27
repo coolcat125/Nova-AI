@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "what can you do"
+    },
+    {
+      "role": "assistant",
+      "content": "I am a versatile assistant. I can open apps and websites, search the web, check weather, send messages, set reminders, control YouTube, manage files, write code, process documents, find flights, and much more, including computer controls and memory management."
+    }
+  ]
+}

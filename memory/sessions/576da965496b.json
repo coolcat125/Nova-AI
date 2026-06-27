@@ -1,0 +1,44 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "what else"
+    },
+    {
+      "role": "assistant",
+      "content": "I can open apps and websites, search the web, check weather, send messages, set reminders, control YouTube, manage files, write code, and much more."
+    },
+    {
+      "role": "user",
+      "content": "do ou have cross-session memory"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I do. I can save important personal information and preferences to my long-term memory, and recall them in future sessions."
+    },
+    {
+      "role": "user",
+      "content": "promt-for-prmot memory."
+    },
+    {
+      "role": "assistant",
+      "content": "I can save personal details like your name, preferences, goals, and projects. Just tell me the information, and I'll save it for later."
+    },
+    {
+      "role": "user",
+      "content": "can you remeber things not saved"
+    },
+    {
+      "role": "assistant",
+      "content": "I can remember things from this current conversation, but my long-term memory is only for specific facts I've been instructed to save."
+    },
+    {
+      "role": "user",
+      "content": "do you rememeber last session"
+    },
+    {
+      "role": "assistant",
+      "content": "I do not have direct access to the previous session's context unless specific information was saved to memory."
+    }
+  ]
+}

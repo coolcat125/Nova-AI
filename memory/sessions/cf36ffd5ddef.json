@@ -1,0 +1,24 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "describe in one sentence aht is on my screen"
+    },
+    {
+      "role": "assistant",
+      "content": "Let's see what's on your screen right now."
+    },
+    {
+      "role": "user",
+      "content": "The screen dis play s a comp lex dar k the med u ser inter face na med No va fe aturing sy stem moni toring and ac tivi ty log and com man d in put , over lay ed on a stand ard desktop."
+    },
+    {
+      "role": "assistant",
+      "content": "Got it."
+    },
+    {
+      "role": "user",
+      "content": "\u0e01\u0e47 \u0e40\u0e1e\u0e23\u0e32\u0e30 \u0e44\u0e14\u0e49 <noise>"
+    }
+  ]
+}

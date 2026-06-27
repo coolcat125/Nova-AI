@@ -1,0 +1,20 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "what else"
+    },
+    {
+      "role": "assistant",
+      "content": "I can perform many tasks, such as opening applications and websites, searching the web, sending messages, setting reminders, controlling YouTube and computer settings, managing files, writing code, processing files, and much more."
+    },
+    {
+      "role": "user",
+      "content": "write a clac ui on port 3000"
+    },
+    {
+      "role": "user",
+      "content": "done?"
+    }
+  ]
+}

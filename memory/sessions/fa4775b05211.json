@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "whats on screen"
+    },
+    {
+      "role": "assistant",
+      "content": "Let me take a look."
+    }
+  ]
+}

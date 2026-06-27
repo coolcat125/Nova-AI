@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hello there! How can I help you today?"
+    },
+    {
+      "role": "assistant",
+      "content": "Calculator opened."
+    }
+  ]
+}
