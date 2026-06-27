@@ -124,17 +124,6 @@ is_dir = " (directory)" if out.is_dir() else ""
 print(f"[Builder] OK  ->  {out}  ({size_mb:.1f} MB){is_dir}")
 
 if IS_MAC and out.is_dir():
-    import shutil
-    sig_dir = out / "Contents" / "_CodeSignature"
-    if sig_dir.exists():
-        shutil.rmtree(sig_dir)
-        print("[Builder] Removed _CodeSignature directory")
-    res_path = out / "Contents" / "CodeResources"
-    if res_path.exists():
-        res_path.unlink()
-        print("[Builder] Removed CodeResources")
-    subprocess.run(["codesign", "--remove-signature", str(out)], capture_output=True)
-    print("[Builder] Stripped ad-hoc code signature")
     import plistlib
     plist_path = out / "Contents" / "Info.plist"
     if plist_path.exists():
@@ -144,6 +133,8 @@ if IS_MAC and out.is_dir():
         with open(plist_path, "wb") as f:
             plistlib.dump(plist, f)
         print("[Builder] Added NSMicrophoneUsageDescription to Info.plist")
+    subprocess.run(["codesign", "--force", "-s", "-", str(out)], check=True, capture_output=True)
+    print("[Builder] Re-signed with ad-hoc signature after plist update")
 
 if IS_MAC:
     import shutil
