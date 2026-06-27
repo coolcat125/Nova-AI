@@ -983,10 +983,7 @@ class NovaLive:
                 self.ui.set_state("THINKING")
                 config = self._build_config()
 
-                async with (
-                    client.aio.live.connect(model=LIVE_MODEL, config=config) as session,
-                    asyncio.TaskGroup() as tg,
-                ):
+                async with client.aio.live.connect(model=LIVE_MODEL, config=config) as session:
                     self.session        = session
                     self._loop          = asyncio.get_event_loop()
                     self.audio_in_queue = asyncio.Queue()
@@ -1007,21 +1004,19 @@ class NovaLive:
                         bridge.set_gemini(self._loop, session, self)
                         self.ui.write_log("SYS: Chat on site ready.")
 
-                    tg.create_task(self._send_realtime())
-                    tg.create_task(self._listen_audio())
-                    tg.create_task(self._receive_audio())
-                    tg.create_task(self._play_audio())
-                    tg.create_task(self._watch_reset())
+                    await asyncio.gather(
+                        self._send_realtime(),
+                        self._listen_audio(),
+                        self._receive_audio(),
+                        self._play_audio(),
+                        self._watch_reset(),
+                    )
 
+            except (websockets.exceptions.ConnectionClosed, asyncio.CancelledError):
+                print("[Nova] Session reset")
             except Exception as e:
-                if isinstance(e, ExceptionGroup) and all(
-                    isinstance(ex, (websockets.exceptions.ConnectionClosed, asyncio.CancelledError))
-                    for ex in e.exceptions
-                ):
-                    print("[Nova] Session reset")
-                else:
-                    print(f"[Nova] ERROR: {e}")
-                    traceback.print_exc()
+                print(f"[Nova] ERROR: {e}")
+                traceback.print_exc()
             self._reset_requested = False
             self.set_speaking(False)
             self.ui.set_state("THINKING")
