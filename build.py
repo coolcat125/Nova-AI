@@ -123,6 +123,19 @@ size_mb = out.stat().st_size / (1024 * 1024)
 is_dir = " (directory)" if out.is_dir() else ""
 print(f"[Builder] OK  ->  {out}  ({size_mb:.1f} MB){is_dir}")
 
+if IS_MAC and out.is_dir():
+    import shutil
+    sig_dir = out / "Contents" / "_CodeSignature"
+    if sig_dir.exists():
+        shutil.rmtree(sig_dir)
+        print("[Builder] Removed _CodeSignature directory")
+    res_path = out / "Contents" / "CodeResources"
+    if res_path.exists():
+        res_path.unlink()
+        print("[Builder] Removed CodeResources")
+    subprocess.run(["codesign", "--remove-signature", str(out)], capture_output=True)
+    print("[Builder] Stripped ad-hoc code signature")
+
 if IS_MAC:
     import shutil
     DMG_WORK = LOCAL_TMP / "Nova-dmg"
