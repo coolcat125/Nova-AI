@@ -135,6 +135,15 @@ if IS_MAC and out.is_dir():
         print("[Builder] Removed CodeResources")
     subprocess.run(["codesign", "--remove-signature", str(out)], capture_output=True)
     print("[Builder] Stripped ad-hoc code signature")
+    import plistlib
+    plist_path = out / "Contents" / "Info.plist"
+    if plist_path.exists():
+        with open(plist_path, "rb") as f:
+            plist = plistlib.load(f)
+        plist["NSMicrophoneUsageDescription"] = "Nova needs microphone access for voice commands and conversation."
+        with open(plist_path, "wb") as f:
+            plistlib.dump(plist, f)
+        print("[Builder] Added NSMicrophoneUsageDescription to Info.plist")
 
 if IS_MAC:
     import shutil
