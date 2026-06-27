@@ -195,9 +195,9 @@ end tell'''
 
     subprocess.run(["hdiutil", "detach", vol_name], check=True, env=env)
 
-    # Convert to compressed UDZO
+    # Convert to compressed ULFO (LZFSE — better than UDZO)
     subprocess.run(
-        ["hdiutil", "convert", str(dmg_rw), "-format", "UDZO",
+        ["hdiutil", "convert", str(dmg_rw), "-format", "ULFO",
          "-o", str(LOCAL_TMP / "Nova-converted")],
         check=True, env=env)
 
