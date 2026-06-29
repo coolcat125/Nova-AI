@@ -48,10 +48,13 @@ _MIN_W,     _MIN_H     = 860, 580
 _LEFT_W  = 240
 _RIGHT_W = 420
 
-_OS = platform.system()  # "Windows" | "Darwin"
+_OS = platform.system()  # "Windows" | "Darwin" | "Linux"
 _IS_MAC = _OS == "Darwin"
+_IS_LINUX = _OS == "Linux"
 _MAC_VERSIONS = {"v1.0.0"}
 _MAC_TAG_SUFFIX = "-MacOS"
+_LINUX_VERSIONS = {"v1.0.0"}
+_LINUX_TAG_SUFFIX = "-Linux"
 
 
 def _force_taskbar_icon():
@@ -2633,6 +2636,8 @@ class MainWindow(QMainWindow):
                 continue
             if _IS_MAC and v not in _MAC_VERSIONS:
                 continue
+            if _IS_LINUX and v not in _LINUX_VERSIONS:
+                continue
             self._ver_combo.addItem(v)
         self._ver_combo.setCurrentIndex(0)
         self._ver_combo.currentIndexChanged.connect(self._on_version_changed)
@@ -2652,8 +2657,15 @@ class MainWindow(QMainWindow):
         if not getattr(sys, "frozen", False):
             self._switch_version_dev(ver)
             return
-        tag = f"{ver}{_MAC_TAG_SUFFIX}" if _IS_MAC else ver
-        asset = "Nova.dmg" if _IS_MAC else "Nova.exe"
+        if _IS_MAC:
+            tag = f"{ver}{_MAC_TAG_SUFFIX}"
+            asset = "Nova.dmg"
+        elif _IS_LINUX:
+            tag = f"{ver}{_LINUX_TAG_SUFFIX}"
+            asset = "Nova"
+        else:
+            tag = ver
+            asset = "Nova.exe"
         url = f"https://github.com/coolcat125/Nova-AI/releases/download/{tag}/{asset}"
         self._log.append_log(f"SYS: Downloading {ver}...")
         threading.Thread(target=self._dl_version, args=(url,), daemon=True).start()
@@ -2661,8 +2673,8 @@ class MainWindow(QMainWindow):
     def _switch_version_dev(self, ver: str):
         stripped = ver.removeprefix("v")
         self._log.append_log(f"SYS: Switching to {ver}...")
-        with open(Path(__file__).resolve().parent / "version.py", "w", encoding="utf-8") as f:
-            f.write(f'__version__ = "{stripped}"\n')
+        vp = Path(__file__).resolve().parent / "version.py"
+        vp.write_text(f'__version__ = "{stripped}"\n', encoding="utf-8")
         self.restart_app()
 
     def _dl_version(self, url: str):
@@ -2951,9 +2963,8 @@ class MainWindow(QMainWindow):
     def _do_update(self, ver: str, url: str):
         if not getattr(sys, "frozen", False):
             stripped = ver.removeprefix("v")
-            Path(Path(__file__).resolve().parent / "version.py").write_text(
-                f'__version__ = "{stripped}"\n', encoding="utf-8"
-            )
+            vp = Path(__file__).resolve().parent / "version.py"
+            vp.write_text(f'__version__ = "{stripped}"\n', encoding="utf-8")
             self._log.append_log(f"SYS: Updated to v{ver}")
             QTimer.singleShot(0, self.restart_app)
             return

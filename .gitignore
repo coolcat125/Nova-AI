@@ -15,3 +15,4 @@ Nova.old.exe
 memory/long_term.json
 memory/quota.json
 memory/scheduled_tasks.json
+memory/sessions/
