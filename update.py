@@ -17,6 +17,7 @@ UPDATE_URL = "https://asknova.vercel.app/version.json"
 TIMEOUT = 5
 
 _SYSTEM = platform.system()
+_IS_MAC = _SYSTEM == "Darwin"
 
 
 def _ver_tuple(v: str) -> tuple:
@@ -29,6 +30,13 @@ def _get_base_dir() -> Path:
     return Path(__file__).resolve().parent
 
 
+def _platform_key() -> str:
+    if _SYSTEM == "Windows":
+        return "windows"
+    elif _IS_MAC:
+        return "macos"
+    return "linux"
+
 def check_for_update() -> dict:
     result = {"update_available": False, "version": __version__, "error": "", "download_url": ""}
     try:
@@ -36,9 +44,10 @@ def check_for_update() -> dict:
         r = requests.get(UPDATE_URL, timeout=TIMEOUT)
         r.raise_for_status()
         data = r.json()
-        remote_ver = data.get("version", "")
-        url_key = "download_url"
-        remote_url = data.get(url_key, data.get("download_url", ""))
+        pkey = _platform_key()
+        plat = data.get(pkey, {})
+        remote_ver = plat.get("version", "")
+        remote_url = plat.get("download_url", "")
         if remote_ver and _ver_tuple(remote_ver) > _ver_tuple(__version__):
             result["update_available"] = True
             result["version"] = remote_ver
@@ -70,7 +79,8 @@ def download_to_temp(url: str) -> str:
         r = requests.get(url, timeout=120)
         r.raise_for_status()
         tmp_dir = Path(tempfile.mkdtemp(prefix="nova_update_"))
-        path = tmp_dir / "Nova.exe"
+        fname = "Nova.dmg" if _IS_MAC else "Nova.exe"
+        path = tmp_dir / fname
         path.write_bytes(r.content)
         print(f"[Updater] Downloaded {path.stat().st_size // 1024 // 1024} MB")
         return str(path)
@@ -140,6 +150,22 @@ def _apply_local(path: str) -> dict:
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
             sys.exit(0)
+
+        elif _IS_MAC:
+            import shutil
+            import time
+            dmg = str(exe_path)
+            vol = "/Volumes/Nova"
+            app_dst = "/Applications/Nova.app"
+            subprocess.run(["hdiutil", "attach", dmg, "-mountpoint", vol], check=True)
+            time.sleep(2)
+            if Path(vol).exists():
+                if Path(app_dst).exists():
+                    shutil.rmtree(app_dst)
+                shutil.copytree(str(Path(vol) / "Nova.app"), app_dst, symlinks=True)
+                subprocess.run(["hdiutil", "detach", vol, "-force"], check=True)
+                subprocess.Popen(["open", app_dst])
+                sys.exit(0)
 
     except Exception as e:
         result["error"] = str(e)

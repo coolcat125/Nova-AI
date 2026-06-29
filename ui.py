@@ -49,6 +49,9 @@ _LEFT_W  = 240
 _RIGHT_W = 420
 
 _OS = platform.system()  # "Windows" | "Darwin"
+_IS_MAC = _OS == "Darwin"
+_MAC_VERSIONS = {"v1.0.0"}
+_MAC_TAG_SUFFIX = "-MacOS"
 
 
 def _force_taskbar_icon():
@@ -2626,8 +2629,11 @@ class MainWindow(QMainWindow):
         self._ver_combo.setFont(QFont("Courier New", 11))
         self._ver_combo.addItem(f"v{__version__} (current)")
         for v in self._known_vers:
-            if v != f"v{__version__}":
-                self._ver_combo.addItem(v)
+            if v == f"v{__version__}":
+                continue
+            if _IS_MAC and v not in _MAC_VERSIONS:
+                continue
+            self._ver_combo.addItem(v)
         self._ver_combo.setCurrentIndex(0)
         self._ver_combo.currentIndexChanged.connect(self._on_version_changed)
         self._ver_combo.setStyleSheet(
@@ -2646,7 +2652,9 @@ class MainWindow(QMainWindow):
         if not getattr(sys, "frozen", False):
             self._switch_version_dev(ver)
             return
-        url = f"https://github.com/coolcat125/Nova-AI/releases/download/{ver}/Nova.exe"
+        tag = f"{ver}{_MAC_TAG_SUFFIX}" if _IS_MAC else ver
+        asset = "Nova.dmg" if _IS_MAC else "Nova.exe"
+        url = f"https://github.com/coolcat125/Nova-AI/releases/download/{tag}/{asset}"
         self._log.append_log(f"SYS: Downloading {ver}...")
         threading.Thread(target=self._dl_version, args=(url,), daemon=True).start()
 

@@ -130,9 +130,11 @@ if IS_MAC and out.is_dir():
         with open(plist_path, "rb") as f:
             plist = plistlib.load(f)
         plist["NSMicrophoneUsageDescription"] = "Nova needs microphone access for voice commands and conversation."
+        plist["CFBundleIconFile"] = "nova"
+        plist["CFBundleVersion"] = "1.0.0"
         with open(plist_path, "wb") as f:
             plistlib.dump(plist, f)
-        print("[Builder] Added NSMicrophoneUsageDescription to Info.plist")
+        print("[Builder] Updated Info.plist (NSMicrophoneUsageDescription, CFBundleIconFile, CFBundleVersion)")
     subprocess.run(["codesign", "--force", "-s", "-", str(out)], check=True, capture_output=True)
     print("[Builder] Re-signed with ad-hoc signature after plist update")
 
@@ -146,16 +148,6 @@ if IS_MAC:
     app_dest = DMG_WORK / "Nova.app"
     subprocess.run(["ditto", str(out), str(app_dest)], check=True)
     (DMG_WORK / "Applications").symlink_to("/Applications")
-
-    # Fix CFBundleIconFile (should be name without extension)
-    # Do NOT re-sign after plist change — ad-hoc re-sign corrupts bundle
-    plist_path = app_dest / "Contents" / "Info.plist"
-    if plist_path.exists():
-        import plistlib
-        plist = plistlib.load(plist_path.open("rb"))
-        plist["CFBundleIconFile"] = "nova"
-        plist["CFBundleVersion"] = "1.0.0"
-        plistlib.dump(plist, plist_path.open("wb"))
 
     # Copy background image into DMG (will hide it after AppleScript)
     bg_img = BASE_DIR / "assets" / "dmg-background.png"
