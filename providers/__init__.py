@@ -11,12 +11,14 @@ import os
 from .gemini import GeminiProvider
 from .openai_provider import OpenAIProvider
 from .ollama import OllamaProvider
+from .opencode import OpenCodeProvider
 
 
 _PROVIDER_INSTANCES = {}
 _DEFAULT_MODELS = {
     "gemini": "gemini-2.5-flash",
     "openai": "gpt-4o",
+    "opencode": "big-pickle",
     "ollama": "llama3.2",
 }
 
@@ -33,10 +35,12 @@ def _get_provider(name: str = None):
         _PROVIDER_INSTANCES[name] = GeminiProvider()
     elif name == "openai":
         _PROVIDER_INSTANCES[name] = OpenAIProvider()
+    elif name == "opencode":
+        _PROVIDER_INSTANCES[name] = OpenCodeProvider()
     elif name == "ollama":
         _PROVIDER_INSTANCES[name] = OllamaProvider()
     else:
-        raise ValueError(f"Unknown LLM_PROVIDER: {name}. Use: gemini, openai, ollama")
+        raise ValueError(f"Unknown LLM_PROVIDER: {name}. Use: gemini, openai, opencode, ollama")
     return _PROVIDER_INSTANCES[name]
 
 
@@ -73,6 +77,8 @@ def reconfigure(provider: str = None, api_key: str = None, base_url: str = None,
             os.environ["GEMINI_API_KEY"] = api_key
         elif prov == "openai":
             os.environ["OPENAI_API_KEY"] = api_key
+        elif prov == "opencode":
+            os.environ["OPENCODE_API_KEY"] = api_key
     if base_url:
         prov = provider or _current_provider_name()
         if prov == "openai":
@@ -91,3 +97,17 @@ def reconfigure(provider: str = None, api_key: str = None, base_url: str = None,
 def get_current_model() -> str:
     name = _current_provider_name()
     return _DEFAULT_MODELS.get(name, "gemini-2.5-flash")
+
+
+def get_provider_api_key() -> str:
+    """Get the API key for the currently selected provider."""
+    prov = _current_provider_name()
+    if prov == "gemini":
+        return os.environ.get("GEMINI_API_KEY", "")
+    elif prov == "openai":
+        return os.environ.get("OPENAI_API_KEY", "")
+    elif prov == "opencode":
+        return os.environ.get("OPENCODE_API_KEY", "")
+    elif prov == "ollama":
+        return ""  # Ollama doesn't need an API key
+    return ""

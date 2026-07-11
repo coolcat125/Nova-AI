@@ -23,81 +23,11 @@ BASE_DIR        = get_base_dir()
 
 
 def _run_generated_code(description: str, speak: Optional[Callable] = None) -> str:
-    from providers import call_llm
-
-    if speak:
-        speak("Writing custom code for this task, sir.")
-
-    home      = Path.home()
-    desktop   = home / "Desktop"
-    downloads = home / "Downloads"
-    documents = home / "Documents"
-
-    if not desktop.exists():
-        try:
-            import winreg
-            key     = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")
-            desktop = Path(winreg.QueryValueEx(key, "Desktop")[0])
-        except Exception:
-            pass
-
-    try:
-        from actions.quota_tracker import increment as increment_quota; increment_quota()
-        resp = call_llm(
-            contents=f"Write Python code to accomplish this task:\n\n{description}",
-            system_instruction=(
-                "You are an expert Python developer. "
-                "Write clean, complete, working Python code. "
-                "Use standard library + common packages. "
-                "Install missing packages with subprocess + pip if needed. "
-                "Return ONLY the Python code. No explanation, no markdown, no backticks.\n\n"
-                f"SYSTEM PATHS:\n"
-                f"  Desktop   = r'{desktop}'\n"
-                f"  Downloads = r'{downloads}'\n"
-                f"  Documents = r'{documents}'\n"
-                f"  Home      = r'{home}'\n"
-            )
-        )
-        code = resp["content"]
-        code = re.sub(r"```(?:python)?", "", code).strip().rstrip("`").strip()
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False, encoding="utf-8"
-        ) as f:
-            f.write(code)
-            tmp_path = f.name
-
-        print(f"[Executor] [snake] Running generated code: {tmp_path}")
-
-        result = subprocess.run(
-            [sys.executable, tmp_path],
-            capture_output=True, text=True,
-            timeout=120, cwd=str(Path.home())
-        )
-
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
-
-        output = result.stdout.strip()
-        error  = result.stderr.strip()
-
-        if result.returncode == 0 and output:
-            return output
-        elif result.returncode == 0:
-            return "Task completed successfully."
-        elif error:
-            raise RuntimeError(f"Code error: {error[:400]}")
-        return "Completed."
-
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("Generated code timed out after 120 seconds.")
-    except RuntimeError:
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Generated code failed: {e}")
+    """DEPRECATED: Never execute LLM-generated code. This is a security risk."""
+    return (
+        f"Code generation for '{description[:80]}' is disabled for security reasons. "
+        f"Please use a specific tool (file_controller, code_helper, etc.) instead."
+    )
 
 def _inject_context(params: dict, tool: str, step_results: dict, goal: str = "") -> dict:
     if not step_results:

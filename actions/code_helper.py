@@ -13,7 +13,8 @@ try:
     from config import get_config
 except ImportError:
     def get_config():
-        return {"gemini_api_key": os.getenv("GEMINI_API_KEY", "")}
+        from providers import get_provider_api_key
+        return {"gemini_api_key": get_provider_api_key()}
 
 
 def get_base_dir():
@@ -27,10 +28,31 @@ MAX_BUILD_ATTEMPTS = 3
 GEMINI_MODEL       = "gemini-2.5-flash"
 _RETRIABLE_CODES   = {429, 500, 502, 503}
 
+SAFE_DIRS = {
+    Path.home(),
+    DESKTOP,
+    Path.home() / "Documents",
+    Path.home() / "Downloads",
+    Path.home() / "Projects",
+    BASE_DIR,
+}
+
+
+def _is_safe_path(path: Path) -> bool:
+    try:
+        resolved = path.resolve()
+        return any(resolved.is_relative_to(d) for d in SAFE_DIRS)
+    except Exception:
+        return False
+
 
 def _get_client(model: str = GEMINI_MODEL):
     from google import genai
     return genai.Client(api_key=get_config()["gemini_api_key"])
+
+
+def _get_api_key():
+    return get_config().get("gemini_api_key", "")
 
 
 def _call_gemini(client, model: str, contents: str, max_retries: int = 3):
@@ -72,9 +94,13 @@ def _resolve_save_path(output_path: str, language: str) -> Path:
     }
     if output_path:
         p = Path(output_path)
-        return p if p.is_absolute() else DESKTOP / p
-    ext = ext_map.get((language or "python").lower(), ".py")
-    return DESKTOP / f"nova_code{ext}"
+        save_path = p if p.is_absolute() else DESKTOP / p
+    else:
+        ext = ext_map.get((language or "python").lower(), ".py")
+        save_path = DESKTOP / f"nova_code{ext}"
+    if not _is_safe_path(save_path):
+        return DESKTOP / f"nova_code{ext_map.get((language or 'python').lower(), '.py')}"
+    return save_path
 
 
 def _read_file(file_path: str) -> tuple[str, str]:
@@ -83,6 +109,8 @@ def _read_file(file_path: str) -> tuple[str, str]:
     p = Path(file_path)
     if not p.exists():
         return "", f"File not found: {file_path}"
+    if not _is_safe_path(p):
+        return "", f"Access denied: {file_path} is outside allowed directories."
     try:
         return p.read_text(encoding="utf-8"), ""
     except Exception as e:
@@ -132,21 +160,21 @@ def _image_to_base64(path: Path) -> str:
 def _detect_intent(description: str, file_path: str, code: str) -> str:
     desc = (description or "").lower()
 
-    screen_kw = ["ekrandaki", "screen", "ekranda", "bu hatayı", "why am i getting",
-                 "neden hata", "what's wrong", "ne yanlış", "screenshot", "görüntü"]
+    screen_kw = ["ekrandaki", "screen", "ekranda", "bu hatayi", "why am i getting",
+                 "neden hata", "what's wrong", "ne yanlis", "screenshot", "goruntu"]
     if any(k in desc for k in screen_kw):
         return "screen_debug"
 
     optimize_kw = ["optimize", "refactor", "clean up", "improve", "temizle",
-                   "iyileştir", "daha iyi", "make it better", "hızlandır"]
+                   "iyilestir", "daha iyi", "make it better", "hizlandir"]
     if any(k in desc for k in optimize_kw) and (code or file_path):
         return "optimize"
 
     if file_path:
         p = Path(file_path)
         edit_kw  = ["edit", "update", "modify", "change", "add", "remove",
-                    "refactor", "fix", "rename", "replace", "düzenle", "değiştir"]
-        run_kw   = ["run", "execute", "launch", "start", "çalıştır"]
+                    "refactor", "fix", "rename", "replace", "duzenle", "degistir"]
+        run_kw   = ["run", "execute", "launch", "start", "calistir"]
         build_kw = ["build", "make it work", "try", "attempt"]
 
         if p.exists() and any(k in desc for k in edit_kw):
@@ -158,7 +186,7 @@ def _detect_intent(description: str, file_path: str, code: str) -> str:
         if p.exists():
             return "explain"
 
-    explain_kw = ["explain", "what does", "describe", "analyze", "açıkla", "ne yapıyor"]
+    explain_kw = ["explain", "what does", "describe", "analyze", "acikla", "ne yapiyor"]
     if any(k in desc for k in explain_kw) and (code or file_path):
         return "explain"
 
@@ -168,7 +196,7 @@ def _detect_intent(description: str, file_path: str, code: str) -> str:
 
     return "write"
 
-def _write(description: str, language: str, output_path: str, player=None) -> tuple[str, Path]:
+def _write(description: str, language: str, output_path: str) -> tuple[str, Path]:
     lang   = language or "python"
     client = _get_client()
 
@@ -213,6 +241,8 @@ Fixed code:"""
 
 
 def _run_file(path: Path, args: str | list, timeout: int) -> str:
+    if not _is_safe_path(path):
+        return f"Execution denied: {path} is outside allowed directories."
     if isinstance(args, str):
         args = shlex.split(args)
     interpreters = {
@@ -250,73 +280,42 @@ def _run_file(path: Path, args: str | list, timeout: int) -> str:
         return f"Execution error: {e}"
 
 
-def _build(description, language, output_path, args, timeout, speak=None, player=None) -> str:
+def _build(description, language, output_path, args, timeout, speak=None) -> str:
     if not description:
         return "Please describe what you want me to build, sir."
 
-    if player:
-        player.write_log("[Code] Build started...")
+    print("[Code] Build started...")
 
     lang = language or "python"
 
     try:
-        code, path = _write(description, lang, output_path, player)
+        code, path = _write(description, lang, output_path)
         print(f"[Code] [OK] Written: {path}")
     except Exception as e:
         msg = f"Could not write initial code: {e}"
         if speak: speak(msg)
         return msg
 
-    last_output = ""
-    for attempt in range(1, MAX_BUILD_ATTEMPTS + 1):
-        print(f"[Code] Attempt {attempt}/{MAX_BUILD_ATTEMPTS}")
-        if player:
-            player.write_log(f"[Code] Attempt {attempt}...")
-
-        last_output = _run_file(path, args, timeout)
-
-        if not _has_error(last_output):
-            msg = (
-                f"Build complete, sir. "
-                f"The code is working after {attempt} attempt{'s' if attempt > 1 else ''}. "
-                f"Saved to {path}."
-            )
-            if speak: speak(msg)
-            return f"{msg}\n\nOutput:\n{last_output}"
-
-        print(f"[Code] [WARN] Error on attempt {attempt}, fixing...")
-        if player:
-            player.write_log(f"[Code] Fixing (attempt {attempt})...")
-
-        try:
-            code = _fix_code(code, last_output, description)
-            _save_file(path, code)
-        except Exception as e:
-            msg = f"Could not fix code on attempt {attempt}: {e}"
-            if speak: speak(msg)
-            return msg
-
     msg = (
-        f"I was unable to build a working version after {MAX_BUILD_ATTEMPTS} attempts, sir. "
-        f"The last error was: {last_output[:200]}"
+        f"Code generated and saved to {path}. "
+        f"Review it before running. To execute, use the 'run' action."
     )
     if speak: speak(msg)
-    return f"{msg}\n\nLast code saved to: {path}"
+    return f"{msg}\n\nPreview:\n{_preview(code)}"
 
-def _write_action(description, language, output_path, player) -> str:
+def _write_action(description, language, output_path) -> str:
     if not description:
         return "Please describe what you want me to write, sir."
-    if player:
-        player.write_log("[Code] Writing code...")
+    print("[Code] Writing code...")
     try:
-        code, path = _write(description, language, output_path, player)
+        code, path = _write(description, language, output_path)
         print(f"[Code] [OK] Written: {path}")
         return f"Code written. Saved to: {path}\n\nPreview:\n{_preview(code)}"
     except Exception as e:
         return f"Could not generate code: {e}"
 
 
-def _edit_action(file_path, instruction, player) -> str:
+def _edit_action(file_path, instruction) -> str:
     if not file_path:
         return "Please provide a file path to edit, sir."
     if not instruction:
@@ -326,8 +325,7 @@ def _edit_action(file_path, instruction, player) -> str:
     if err:
         return err
 
-    if player:
-        player.write_log("[Code] Editing file...")
+    print("[Code] Editing file...")
 
     client = _get_client()
     prompt = f"""You are an expert code editor.
@@ -352,7 +350,7 @@ Updated code:"""
     return f"File edited. {status}\n\nPreview:\n{_preview(edited)}"
 
 
-def _explain_action(file_path, code, player) -> str:
+def _explain_action(file_path, code) -> str:
     if file_path and not code:
         code, err = _read_file(file_path)
         if err:
@@ -360,8 +358,7 @@ def _explain_action(file_path, code, player) -> str:
     if not code:
         return "Please provide code or a file path to explain, sir."
 
-    if player:
-        player.write_log("[Code] Analyzing code...")
+    print("[Code] Analyzing code...")
 
     client = _get_client()
     prompt = f"""Explain what this code does in simple, clear language.
@@ -380,18 +377,19 @@ Explanation:"""
         return f"Could not explain code: {e}"
 
 
-def _run_action(file_path, args, timeout, player) -> str:
+def _run_action(file_path, args, timeout) -> str:
     if not file_path:
         return "Please provide a file path to run, sir."
     p = Path(file_path)
     if not p.exists():
         return f"File not found: {file_path}"
-    if player:
-        player.write_log(f"[Code] Running {p.name}...")
+    if not _is_safe_path(p):
+        return f"Execution denied: {file_path} is outside allowed directories."
+    print(f"[Code] Running {p.name}...")
     return _run_file(p, args, timeout)
 
 
-def _optimize_action(file_path, code, language, output_path, player) -> str:
+def _optimize_action(file_path, code, language, output_path) -> str:
 
     if file_path and not code:
         code, err = _read_file(file_path)
@@ -400,8 +398,7 @@ def _optimize_action(file_path, code, language, output_path, player) -> str:
     if not code:
         return "Please provide code or a file path to optimize, sir."
 
-    if player:
-        player.write_log("[Code] Optimizing code...")
+    print("[Code] Optimizing code...")
 
     lang   = language or "python"
     client = _get_client()
@@ -426,7 +423,6 @@ Optimized code:"""
     except Exception as e:
         return f"Could not optimize code: {e}"
 
-    # Kaydet
     if file_path:
         save_path = Path(file_path)
     else:
@@ -442,23 +438,19 @@ Optimized code:"""
     return (
         f"Code optimized. {status}\n"
         f"Lines: {original_lines}  ->  {optimized_lines} "
-        f"({'−' if diff > 0 else '+'}{abs(diff)} lines)\n\n"
+        f"({'-' if diff > 0 else '+'}{abs(diff)} lines)\n\n"
         f"Preview:\n{_preview(optimized)}"
     )
 
 
-def _screen_debug_action(description, file_path, player, speak=None) -> str:
+def _screen_debug_action(description, file_path, speak=None) -> str:
 
-    if player:
-        player.write_log("[Code] Taking screenshot for analysis...")
-
+    print("[Code] Taking screenshot for analysis...")
     print("[Code] Capturing screen for debug...")
-
 
     screenshot_path = _take_screenshot()
     if not screenshot_path:
         return "Could not take screenshot, sir. Please make sure PyAutoGUI is installed."
-
 
     file_content = ""
     if file_path:
@@ -533,13 +525,7 @@ Be specific and actionable. If you see an error message, quote it exactly."""
         return f"Screen analysis failed: {e}"
 
 
-def code_helper(
-    parameters: dict,
-    response=None,
-    player=None,
-    session_memory=None,
-    speak=None
-) -> str:
+def code_helper(parameters: dict, speak=None) -> str:
     """
     Called from main.py.
 
@@ -568,29 +554,28 @@ def code_helper(
         print(f"[Code] Auto-detected: {action}")
 
     if action == "write":
-        return _write_action(description, language, output_path, player)
+        return _write_action(description, language, output_path)
 
     elif action == "edit":
         return _edit_action(
             file_path,
-            description or p.get("instruction", ""),
-            player
+            description or p.get("instruction", "")
         )
 
     elif action == "explain":
-        return _explain_action(file_path, code, player)
+        return _explain_action(file_path, code)
 
     elif action == "run":
-        return _run_action(file_path, args, timeout, player)
+        return _run_action(file_path, args, timeout)
 
     elif action == "build":
-        return _build(description, language, output_path, args, timeout, speak, player)
+        return _build(description, language, output_path, args, timeout, speak)
 
     elif action == "optimize":
-        return _optimize_action(file_path, code, language, output_path, player)
+        return _optimize_action(file_path, code, language, output_path)
 
     elif action == "screen_debug":
-        return _screen_debug_action(description, file_path, player, speak)
+        return _screen_debug_action(description, file_path, speak)
 
     else:
         return f"Unknown action: '{action}'. Use write, edit, explain, run, build, optimize, or screen_debug."

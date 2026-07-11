@@ -25,10 +25,17 @@ def _normalize_url(url: str) -> str:
     Bare words like "instagram"  ->  "https://instagram.com"
     Domains like "instagram.com"  ->  "https://instagram.com"
     Full URLs pass through unchanged.
+    Blocks dangerous schemes: file://, javascript:, data:
     """
     url = url.strip()
     if not url:
         return "about:blank"
+    
+    blocked_schemes = ("file://", "javascript:", "data:", "vbscript:")
+    for scheme in blocked_schemes:
+        if url.lower().startswith(scheme):
+            return "about:blank"
+    
     if "://" in url:
         return url
     # No dot at all  ->  assume .com  (e.g. "instagram"  ->  "instagram.com")
@@ -58,7 +65,6 @@ def _user_agent() -> str:
 
 
 def _real_profile_dir(browser: str) -> str:
-    home  = Path.home()
     home  = Path.home()
     local = os.environ.get("LOCALAPPDATA", "")
     roam  = os.environ.get("APPDATA", "")
@@ -685,6 +691,9 @@ class _BrowserSession:
         page = await self._get_page()
         try:
             save_path = path or str(Path.home() / "Desktop" / "nova_screenshot.png")
+            p = Path(save_path).expanduser().resolve()
+            if not p.is_relative_to(Path.home().resolve()):
+                save_path = str(Path.home() / "Desktop" / "nova_screenshot.png")
             await page.screenshot(path=save_path, full_page=False)
             return f"Screenshot saved: {save_path}"
         except Exception as e:
@@ -779,17 +788,15 @@ class _SessionRegistry:
             lines = []
             for name in self._sessions:
                 marker = " < active" if name == self._active_browser else ""
-                lines.append(f"   {name}{marker}")
+                lines.append(f"  - {name}{marker}")
             return "Open browsers:\n" + "\n".join(lines)
 
 
 _registry = _SessionRegistry()
 
 def browser_control(
-    parameters:    dict = None,
-    response=None,
-    player=None,
-    session_memory=None,
+    parameters: dict = None,
+    speak=None,
 ) -> str:
     params  = parameters or {}
     action  = params.get("action", "").lower().strip()
@@ -799,24 +806,24 @@ def browser_control(
     if action == "switch":
         target = browser or params.get("target", "").lower().strip()
         result = _registry.switch(target) if target else "Please specify a browser."
-        _log(player, result)
+        print(f"[Browser] {result[:80]}")
         return result
 
     if action == "list_browsers":
         result = _registry.list_sessions()
-        _log(player, result)
+        print(f"[Browser] {result[:80]}")
         return result
 
     if action == "close_all":
         result = _registry.close_all()
-        _log(player, result)
+        print(f"[Browser] {result[:80]}")
         return result
 
     try:
         sess = _registry.get(browser)
     except Exception as e:
         result = f"Could not start browser session: {e}"
-        _log(player, result)
+        print(f"[Browser] {result[:80]}")
         return result
 
     try:
@@ -866,12 +873,5 @@ def browser_control(
     except Exception as e:
         result = f"Browser error ({action}): {e}"
 
-    _log(player, result)
+    print(f"[Browser] {result[:80]}")
     return result
-
-
-def _log(player, text: str):
-    short = str(text)[:80]
-    print(f"[Browser] {short}")
-    if player:
-        player.write_log(f"[Browser] {short[:60]}")

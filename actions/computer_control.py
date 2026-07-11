@@ -33,10 +33,11 @@ _MEMORY_PATH  = _BASE / "memory" / "long_term.json"
 
 def _load_config() -> dict:
     from dotenv import load_dotenv
+    from providers import get_provider_api_key
     dotenv_path = _BASE / ".env"
     load_dotenv(dotenv_path)
     detected = {"Windows": "windows", "Darwin": "mac", "Linux": "linux"}.get(platform.system(), "linux")
-    return {"gemini_api_key": os.getenv("GEMINI_API_KEY", ""), "os_system": os.getenv("OS_SYSTEM", detected)}
+    return {"gemini_api_key": get_provider_api_key(), "os_system": os.getenv("OS_SYSTEM", detected)}
 
 def _get_os() -> str:
     detected = {"Windows": "windows", "Darwin": "mac", "Linux": "linux"}.get(platform.system(), "linux")
@@ -44,10 +45,14 @@ def _get_os() -> str:
 
 
 def _get_api_key() -> str:
-    return os.getenv("GEMINI_API_KEY", "")
+    from providers import get_provider_api_key
+    return get_provider_api_key()
 
 _SAFE_SCREENSHOT_ROOTS = (
     Path.home(),
+    Path.home() / "Desktop",
+    Path.home() / "Documents",
+    Path.home() / "Downloads",
 )
 
 def _safe_screenshot_path(requested: Optional[str]) -> Path:
@@ -241,54 +246,64 @@ def _clear_field() -> str:
     pyautogui.press("delete")
     return "Field cleared"
 
+def _sanitize_title(title: str) -> str:
+    import re as _re
+    return _re.sub(r'[^\w\s\-.]', '', title)[:100]
+
+
 def _focus_window(title: str) -> str:
     os_name = _get_os()
+    safe_title = _sanitize_title(title)
 
     if os_name == "windows":
         try:
-            script = f'(New-Object -ComObject WScript.Shell).AppActivate("{title}")'
-            subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
-                capture_output=True, timeout=5,
-            )
-            time.sleep(0.3)
-            return f"Focused window: {title}"
+            import ctypes
+            user32 = ctypes.windll.user32
+            hwnd = user32.FindWindowW(None, safe_title)
+            if hwnd:
+                user32.SetForegroundWindow(hwnd)
+                time.sleep(0.3)
+                return f"Focused window: {safe_title}"
+            return f"Could not find window: {safe_title}"
         except Exception as e:
             return f"focus_window (Windows) failed: {e}"
 
     if os_name == "mac":
         script = (
-            f'tell application "System Events" to '
-            f'set frontmost of (first process whose name contains "{title}") to true'
+            'on run argv\n'
+            '  tell application "System Events"\n'
+            '    set frontmost of (first process whose name contains (item 1 of argv)) to true\n'
+            '  end tell\n'
+            'end run'
         )
         try:
             subprocess.run(
-                ["osascript", "-e", script],
+                ["osascript", "-e", script, safe_title],
                 capture_output=True, timeout=5,
             )
             time.sleep(0.3)
-            return f"Focused window: {title}"
+            return f"Focused window: {safe_title}"
         except Exception as e:
             return f"focus_window (macOS) failed: {e}"
 
     if os_name == "linux":
         try:
             result = subprocess.run(
-                ["wmctrl", "-a", title],
+                ["wmctrl", "-a", safe_title],
                 capture_output=True, timeout=5,
             )
             if result.returncode == 0:
                 time.sleep(0.3)
-                return f"Focused window: {title}"
+                return f"Focused window: {safe_title}"
         except FileNotFoundError:
             pass
         try:
             result = subprocess.run(
-                ["xdotool", "search", "--name", title, "windowactivate"],
+                ["xdotool", "search", "--name", safe_title, "windowactivate"],
                 capture_output=True, timeout=5,
             )
             time.sleep(0.3)
-            return f"Focused window: {title}"
+            return f"Focused window: {safe_title}"
         except FileNotFoundError:
             return "focus_window (Linux) requires wmctrl or xdotool"
         except Exception as e:
@@ -345,9 +360,7 @@ def _screen_find(description: str) -> Optional[tuple[int, int]]:
 
 def computer_control(
     parameters: dict,
-    response=None,
-    player=None,
-    session_memory=None,
+    speak=None,
 ) -> str:
     """
     Dispatch table for all computer control actions.
@@ -396,9 +409,6 @@ def computer_control(
 
     if not action:
         return "No action specified for computer_control."
-
-    if player:
-        player.write_log(f"[Computer] {action}")
 
     print(f"[ComputerControl] > {action}  {params}")
 

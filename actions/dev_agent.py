@@ -12,7 +12,8 @@ try:
     from config import get_config
 except ImportError:
     def get_config():
-        return {"gemini_api_key": os.getenv("GEMINI_API_KEY", "")}
+        from providers import get_provider_api_key
+        return {"gemini_api_key": get_provider_api_key()}
 
 
 def get_base_dir():
@@ -68,7 +69,7 @@ def _classify_error(output: str) -> str:
 
     if "syntaxerror" in low or "invalid syntax" in low:
         return "syntax_error"
-    
+
     if "cannot import" in low or "importerror" in low:
         return "import_error"
 
@@ -320,7 +321,6 @@ def _run_project(run_command: str, project_dir: Path, timeout: int = 30) -> str:
         return f"Run error: {e}"
 
 def _try_auto_install(error_output: str, project_dir: Path) -> bool:
-    """ModuleNotFoundError varsa eksik paketi otomatik kurmaya çalışır."""
     pattern = re.compile(
         r"No module named ['\"]([a-zA-Z0-9_\-\.]+)['\"]", re.IGNORECASE
     )
@@ -437,13 +437,10 @@ def _build_project(
     project_name: str,
     timeout: int,
     speak=None,
-    player=None,
 ) -> str:
 
     def log(msg: str):
         print(f"[DevAgent] {msg}")
-        if player:
-            player.write_log(f"[DevAgent] {msg}")
 
     log("Planning project structure...")
     try:
@@ -517,7 +514,7 @@ def _build_project(
     _open_vscode(project_dir)
 
     last_output   = ""
-    auto_installs = 0  
+    auto_installs = 0
 
     for attempt in range(1, MAX_FIX_ATTEMPTS + 1):
         log(f"Running project (attempt {attempt}/{MAX_FIX_ATTEMPTS})...")
@@ -573,13 +570,7 @@ def _build_project(
     return f"{msg}\n\nLast error:\n{last_output[:600]}"
 
 
-def dev_agent(
-    parameters: dict,
-    response=None,
-    player=None,
-    session_memory=None,
-    speak=None,
-) -> str:
+def dev_agent(parameters: dict, speak=None) -> str:
     p            = parameters or {}
     description  = p.get("description", "").strip()
     language     = p.get("language", "python").strip()
@@ -595,5 +586,4 @@ def dev_agent(
         project_name = project_name,
         timeout      = timeout,
         speak        = speak,
-        player       = player,
     )

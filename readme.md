@@ -4,9 +4,7 @@
 ![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)
 
-Nova is a single-prompt autonomous desktop AI agent with always-on voice, live screen vision, and 19 built-in tools. Powered by Google Gemini native audio — no STT/TTS pipeline.
-
-*Built on the groundwork of **FaithMakes** original vision.*
+Nova is a single-prompt autonomous desktop AI agent with always-on voice, live screen vision, and 21 built-in tools. Powered by Google Gemini native audio — no STT/TTS pipeline.
 
 [![Nova Demo](https://img.youtube.com/vi/UuhD9J_L0uE/maxresdefault.jpg)](https://youtu.be/UuhD9J_L0uE)
 
@@ -18,8 +16,12 @@ Nova is a single-prompt autonomous desktop AI agent with always-on voice, live s
 - 🖥️ Desktop & file automation
 - 🌐 Browser control
 - 💾 Long-term memory
-- 🔧 19 built-in tools — no plugins needed
+- 🔧 21 built-in tools — no plugins needed
 - 🔁 Self-healing — retries until done
+- ☀️ Morning Briefing — First boot reads time, news, weather based on your city
+- 🔍 Advanced Multi-Modal Search — News, research, price, compare modes with Gemini Grounded Search + DuckDuckGo fallback
+- 📋 Dynamic Content Panel — Scrollable display for high-density web results with timestamps
+- 🌐 Silent Language Memory — Captures spoken language on first boot to adapt all briefings
 
 ---
 

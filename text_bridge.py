@@ -1,7 +1,8 @@
 from __future__ import annotations
 import asyncio
 import json
-import random
+import os
+import secrets
 import string
 import threading
 import time
@@ -10,15 +11,21 @@ from typing import Optional,  Any, Callable
 import websockets
 from supabase import create_client, Client
 
-SUPABASE_URL = "https://fylderfkpxbsjdzpbcle.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5bGRlcmZrcHhic2pkenBiY2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4MTU1MzQsImV4cCI6MjA5NzM5MTUzNH0.wnpCgZxQrtlIFtWXRcAkVRtJJ-84QjZcTWG1owjiHak"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError(
+        "SUPABASE_URL and SUPABASE_KEY environment variables are required. "
+        "Set them in your .env file or system environment."
+    )
 
 REALTIME_URL = SUPABASE_URL.replace("https://", "wss://") + "/realtime/v1/websocket"
 
 
 def _generate_code() -> str:
     chars = string.ascii_uppercase + string.digits
-    return "".join(random.choices(chars, k=6))
+    return "".join(secrets.choice(chars) for _ in range(6))
 
 
 class TextBridge:
@@ -31,11 +38,14 @@ class TextBridge:
         self._on_message_cb: Optional[Callable] = None
         self._gemini_loop: Optional[asyncio.AbstractEventLoop] = None
         self._gemini_session: Any = None
+        self._nova_client: Any = None
         self._log_cb: Optional[Callable] = None
         self._pairing_cb: Optional[Callable] = None
         self._ws_task: Optional[asyncio.Task] = None
         self._keepalive_task: Optional[asyncio.Task] = None
         self._pending_messages: list[str] = []
+        self._conversation: list[dict] = []
+        self._system_prompt: str = ""
 
     def set_callbacks(self, on_message=None, log=None, pairing=None):
         self._on_message_cb = on_message
@@ -60,6 +70,15 @@ class TextBridge:
                 ),
                 self._gemini_loop
             )
+
+    def set_provider(self, system_prompt: str):
+        """Configure bridge for non-Gemini providers (uses call_llm)."""
+        self._system_prompt = system_prompt
+        self._log("Connected to Nova (provider mode).")
+        pending = list(self._pending_messages)
+        self._pending_messages.clear()
+        for msg in pending:
+            asyncio.create_task(self._process_text(msg))
 
     def start(self):
         def _run_loop():
@@ -108,6 +127,31 @@ class TextBridge:
             )
         except Exception as e:
             self._log(f"Send failed: {e}")
+
+    async def _process_text(self, text: str):
+        """Process a text message via call_llm (non-Gemini provider)."""
+        from providers import call_llm
+        import os
+
+        self._conversation.append({"role": "user", "content": text})
+        self._log(f"Processing: {text[:40]}...")
+
+        try:
+            model = os.environ.get("LLM_MODEL", "")
+            result = await asyncio.to_thread(
+                lambda: call_llm(
+                    model=model or None,
+                    system_instruction=self._system_prompt,
+                    messages=self._conversation,
+                )
+            )
+            reply = result.get("content", "No response.")
+            self._conversation.append({"role": "assistant", "content": reply})
+            self.send_message(reply)
+            self._log(f"Reply sent: {reply[:40]}...")
+        except Exception as e:
+            self._log(f"LLM error: {e}")
+            self.send_message("Sorry, I encountered an error.")
 
     async def _arun(self):
         self._loop = asyncio.get_event_loop()
@@ -195,8 +239,11 @@ class TextBridge:
                                             ),
                                             self._gemini_loop
                                         )
+                                    elif self._system_prompt:
+                                        self._log("Sending to Nova (provider)...")
+                                        asyncio.create_task(self._process_text(text))
                                     else:
-                                        self._log("Nova not ready — queuing")
+                                        self._log("Nova not ready -- queuing")
                                         self._pending_messages.append(text)
                         except json.JSONDecodeError:
                             pass

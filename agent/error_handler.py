@@ -134,13 +134,14 @@ Attempt number: {attempt}"""
 def generate_fix(step: dict, error: str, fix_suggestion: str) -> dict:
     """
     When decision is REPLAN and a fix suggestion exists,
-    generates a replacement step using generated_code as fallback.
+    generates a replacement step using code_helper write action.
+    Does NOT auto-execute generated code for security.
 
     Returns a modified step dict.
     """
     from providers import call_llm
 
-    prompt = f"""A task step failed. Generate a replacement step.
+    prompt = f"""A task step failed. Generate a fix.
 
 Original step:
 Tool: {step.get('tool')}
@@ -164,9 +165,8 @@ Return ONLY the Python code, no explanation."""
             "tool":        "code_helper",
             "description": f"Auto-fix for: {step.get('description')}",
             "parameters": {
-                "action":      "run",
+                "action":      "write",
                 "description": fix_suggestion,
-                "code":        code,
                 "language":    "python"
             },
             "depends_on": step.get("depends_on", []),

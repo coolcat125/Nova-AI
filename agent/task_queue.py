@@ -36,6 +36,8 @@ class Task:
 
 
 class TaskQueue:
+    MAX_TASK_HISTORY = 100
+    
     def __init__(self, max_concurrent: int = 1):
         self._queue:        list[Task]       = []
         self._lock:         threading.Lock   = threading.Lock()
@@ -140,6 +142,20 @@ class TaskQueue:
         with self._lock:
             return sum(1 for t in self._queue if t.status == TaskStatus.PENDING)
 
+    def purge_old_tasks(self) -> int:
+        with self._lock:
+            terminal = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED}
+            old_ids = [
+                tid for tid, t in self._tasks.items()
+                if t.status in terminal
+            ]
+            if len(old_ids) > self.MAX_TASK_HISTORY:
+                old_ids = old_ids[self.MAX_TASK_HISTORY:]
+                for tid in old_ids:
+                    del self._tasks[tid]
+                return len(old_ids)
+        return 0
+
     def _worker_loop(self) -> None:
         while self._running:
             task = None
@@ -204,6 +220,8 @@ class TaskQueue:
                 task.error  = str(e)
                 self._active_count -= 1
             print(f"[TaskQueue] Failed: [{task.task_id}] {e}")
+
+        self.purge_old_tasks()
 
         with self._condition:
             self._condition.notify()

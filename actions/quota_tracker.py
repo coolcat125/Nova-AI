@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import os
+import threading
 from datetime import date
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from pathlib import Path
 from config.paths import get_data_dir
 
 QUOTA_FILE = get_data_dir() / "memory" / "quota.json"
+_QUOTA_LOCK = threading.Lock()
 
 _PROVIDER_LIMITS = {
     "gemini": 1500,
@@ -40,14 +42,16 @@ def _load() -> dict:
 
 
 def increment():
-    data = _load()
-    data["count"] = data.get("count", 0) + 1
-    QUOTA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    QUOTA_FILE.write_text(json.dumps(data), encoding="utf-8")
+    with _QUOTA_LOCK:
+        data = _load()
+        data["count"] = data.get("count", 0) + 1
+        QUOTA_FILE.parent.mkdir(parents=True, exist_ok=True)
+        QUOTA_FILE.write_text(json.dumps(data), encoding="utf-8")
 
 
 def get_usage() -> tuple:
-    data = _load()
+    with _QUOTA_LOCK:
+        data = _load()
     used = data.get("count", 0)
     limit = _detect_limit()
     remaining = max(0, limit - used)

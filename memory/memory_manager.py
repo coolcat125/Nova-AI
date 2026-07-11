@@ -1,212 +1,250 @@
 from __future__ import annotations
+
 import json
 from datetime import datetime
-from threading import Lock
 from pathlib import Path
-import sys
+from threading import Lock
 from typing import Optional
-
 
 from config.paths import get_data_dir
 
-MEMORY_PATH      = get_data_dir() / "memory" / "long_term.json"
-_lock            = Lock()
-MAX_VALUE_LENGTH = 380
-MEMORY_MAX_CHARS = 2200
+_MEMORY_FILE = get_data_dir() / "memory" / "long_term.json"
+_write_lock = Lock()
 
-def _empty_memory() -> dict:
-    return {
-        "identity":      {},
-        "preferences":   {},
-        "projects":      {},
-        "relationships": {},
-        "wishes":        {},
-        "notes":         {},
-    }
+MAX_ENTRY_LEN = 380
+MAX_MEMORY_BYTES = 2200
 
-def load_memory() -> dict:
-    if not MEMORY_PATH.exists():
-        return _empty_memory()
-    with _lock:
-        try:
-            data = json.loads(MEMORY_PATH.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                base = _empty_memory()
-                for key in base:
-                    if key not in data:
-                        data[key] = {}
-                return data
-            return _empty_memory()
-        except Exception as e:
-            print(f"[Memory] [WARN] Load error: {e}")
-            return _empty_memory()
+_VALID_CATEGORIES = frozenset({
+    "identity",
+    "preferences",
+    "projects",
+    "relationships",
+    "wishes",
+    "notes",
+})
 
-def _all_entries(memory: dict) -> list[tuple]:
-    entries = []
-    for cat, items in memory.items():
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _blank() -> dict:
+    return {cat: {} for cat in _VALID_CATEGORIES}
+
+
+def _collect_entries(mem: dict) -> list[tuple[str, str, dict]]:
+    out: list[tuple[str, str, dict]] = []
+    for category, items in mem.items():
         if not isinstance(items, dict):
             continue
         for key, entry in items.items():
             if isinstance(entry, dict) and "value" in entry:
-                entries.append((cat, key, entry))
-    return entries
+                out.append((category, key, entry))
+    return out
 
 
-def _trim_to_limit(memory: dict) -> dict:
-    if len(json.dumps(memory, ensure_ascii=False)) <= MEMORY_MAX_CHARS:
-        return memory
-    entries = _all_entries(memory)
+def _cap_entry(val: str) -> str:
+    if isinstance(val, str) and len(val) > MAX_ENTRY_LEN:
+        return val[:MAX_ENTRY_LEN].rstrip() + "..."
+    return val
+
+
+def _merge(target: dict, patch: dict) -> bool:
+    dirty = False
+    for k, v in patch.items():
+        if v is None:
+            continue
+        if isinstance(v, str) and not v.strip():
+            continue
+
+        if isinstance(v, dict) and "value" not in v:
+            if k not in target or not isinstance(target[k], dict):
+                target[k] = {}
+                dirty = True
+            if _merge(target[k], v):
+                dirty = True
+        else:
+            raw = v["value"] if isinstance(v, dict) else v
+            capped = _cap_entry(str(raw))
+            stamp = datetime.now().strftime("%Y-%m-%d")
+            prev = target.get(k, {})
+            if not isinstance(prev, dict) or prev.get("value") != capped:
+                target[k] = {"value": capped, "updated": stamp}
+                dirty = True
+    return dirty
+
+
+def _shrink(mem: dict) -> dict:
+    blob = json.dumps(mem, ensure_ascii=False)
+    if len(blob) <= MAX_MEMORY_BYTES:
+        return mem
+
+    entries = _collect_entries(mem)
     entries.sort(key=lambda t: t[2].get("updated", "0000-00-00"))
-    for cat, key, _ in entries:
-        if len(json.dumps(memory, ensure_ascii=False)) <= MEMORY_MAX_CHARS:
-            break
-        del memory[cat][key]
-        print(f"[Memory] [trash]  Trimmed {cat}/{key}")
-    return memory
 
-def save_memory(memory: dict) -> None:
-    if not isinstance(memory, dict):
+    for cat, key, _ in entries:
+        if len(json.dumps(mem, ensure_ascii=False)) <= MAX_MEMORY_BYTES:
+            break
+        del mem[cat][key]
+        print(f"[Memory] [trash]  Trimmed {cat}/{key}")
+    return mem
+
+
+# ---------------------------------------------------------------------------
+# Persistence
+# ---------------------------------------------------------------------------
+
+def load_memory() -> dict:
+    if not _MEMORY_FILE.exists():
+        return _blank()
+
+    with _write_lock:
+        try:
+            raw = json.loads(_MEMORY_FILE.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                template = _blank()
+                for cat in template:
+                    raw.setdefault(cat, {})
+                return raw
+            return _blank()
+        except Exception as exc:
+            print(f"[Memory] [WARN] Load error: {exc}")
+            return _blank()
+
+
+def save_memory(mem: dict) -> None:
+    if not isinstance(mem, dict):
         return
-    memory = _trim_to_limit(memory)
-    MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with _lock:
-        MEMORY_PATH.write_text(
-            json.dumps(memory, indent=2, ensure_ascii=False),
+    mem = _shrink(mem)
+    _MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with _write_lock:
+        _MEMORY_FILE.write_text(
+            json.dumps(mem, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
 
 
-def _truncate_value(val: str) -> str:
-    if isinstance(val, str) and len(val) > MAX_VALUE_LENGTH:
-        return val[:MAX_VALUE_LENGTH].rstrip() + "..."
-    return val
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
-
-def _recursive_update(target: dict, updates: dict) -> bool:
-    changed = False
-    for key, value in updates.items():
-        if value is None:
-            continue
-        if isinstance(value, str) and not value.strip():
-            continue
-        if isinstance(value, dict) and "value" not in value:
-            if key not in target or not isinstance(target[key], dict):
-                target[key] = {}
-                changed = True
-            if _recursive_update(target[key], value):
-                changed = True
-        else:
-            new_val  = _truncate_value(str(value["value"] if isinstance(value, dict) else value))
-            entry    = {"value": new_val, "updated": datetime.now().strftime("%Y-%m-%d")}
-            existing = target.get(key, {})
-            if not isinstance(existing, dict) or existing.get("value") != new_val:
-                target[key] = entry
-                changed = True
-    return changed
-
-
-def update_memory(memory_update: dict) -> dict:
-    if not isinstance(memory_update, dict) or not memory_update:
+def update_memory(patch: dict) -> dict:
+    if not isinstance(patch, dict) or not patch:
         return load_memory()
-    memory = load_memory()
-    if _recursive_update(memory, memory_update):
-        save_memory(memory)
-        print(f"[Memory] Saved: {list(memory_update.keys())}")
-    return memory
+    mem = load_memory()
+    if _merge(mem, patch):
+        save_memory(mem)
+        print(f"[Memory] Saved: {list(patch.keys())}")
+    return mem
 
-def format_memory_for_prompt(memory: Optional[dict]) -> str:
-    if not memory:
-        return ""
-
-    lines = []
-
-    identity  = memory.get("identity", {})
-    id_fields = ["name", "age", "birthday", "city", "job", "language", "school", "nationality"]
-    for field in id_fields:
-        entry = identity.get(field)
-        if entry:
-            val = entry.get("value") if isinstance(entry, dict) else entry
-            if val:
-                lines.append(f"{field.title()}: {val}")
-    for key, entry in identity.items():
-        if key in id_fields:
-            continue
-        val = entry.get("value") if isinstance(entry, dict) else entry
-        if val:
-            lines.append(f"{key.replace('_', ' ').title()}: {val}")
-
-    prefs = memory.get("preferences", {})
-    if prefs:
-        lines.append("")
-        lines.append("Preferences:")
-        for key, entry in list(prefs.items())[:15]:
-            val = entry.get("value") if isinstance(entry, dict) else entry
-            if val:
-                lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
-
-    projects = memory.get("projects", {})
-    if projects:
-        lines.append("")
-        lines.append("Active Projects / Goals:")
-        for key, entry in list(projects.items())[:8]:
-            val = entry.get("value") if isinstance(entry, dict) else entry
-            if val:
-                lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
-
-    rels = memory.get("relationships", {})
-    if rels:
-        lines.append("")
-        lines.append("People in their life:")
-        for key, entry in list(rels.items())[:10]:
-            val = entry.get("value") if isinstance(entry, dict) else entry
-            if val:
-                lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
-
-    wishes = memory.get("wishes", {})
-    if wishes:
-        lines.append("")
-        lines.append("Wishes / Plans / Wants:")
-        for key, entry in list(wishes.items())[:8]:
-            val = entry.get("value") if isinstance(entry, dict) else entry
-            if val:
-                lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
-
-    notes = memory.get("notes", {})
-    if notes:
-        lines.append("")
-        lines.append("Other notes:")
-        for key, entry in list(notes.items())[:8]:
-            val = entry.get("value") if isinstance(entry, dict) else entry
-            if val:
-                lines.append(f"  - {key}: {val}")
-
-    if not lines:
-        return ""
-
-    header = "[WHAT YOU KNOW ABOUT THIS PERSON  --  use naturally, never recite like a list]\n"
-    result = header + "\n".join(lines)
-    if len(result) > 2000:
-        result = result[:1997] + "..."
-
-    return result + "\n"
 
 def remember(key: str, value: str, category: str = "notes") -> str:
-    valid = {"identity", "preferences", "projects", "relationships", "wishes", "notes"}
-    if category not in valid:
+    if category not in _VALID_CATEGORIES:
         category = "notes"
+    key = str(key).strip()[:100]
+    value = str(value).strip()[:MAX_ENTRY_LEN]
+    if not key:
+        return "Key cannot be empty."
     update_memory({category: {key: {"value": value}}})
     return f"Remembered: {category}/{key} = {value}"
 
 
 def forget(key: str, category: str = "notes") -> str:
-    memory = load_memory()
-    cat    = memory.get(category, {})
-    if key in cat:
-        del cat[key]
-        memory[category] = cat
-        save_memory(memory)
+    key = str(key).strip()[:100]
+    if not key:
+        return "Key cannot be empty."
+    mem = load_memory()
+    bucket = mem.get(category, {})
+    if key in bucket:
+        del bucket[key]
+        mem[category] = bucket
+        save_memory(mem)
         return f"Forgotten: {category}/{key}"
     return f"Not found: {category}/{key}"
 
 
 forget_memory = forget
+
+
+# ---------------------------------------------------------------------------
+# Prompt formatting
+# ---------------------------------------------------------------------------
+
+def format_memory_for_prompt(mem: Optional[dict]) -> str:
+    if not mem:
+        return ""
+
+    lines: list[str] = []
+
+    identity = mem.get("identity", {})
+    id_order = [
+        "name", "age", "birthday", "city", "job",
+        "language", "school", "nationality",
+    ]
+    for field in id_order:
+        entry = identity.get(field)
+        if entry:
+            val = entry.get("value") if isinstance(entry, dict) else entry
+            if val:
+                lines.append(f"{field.title()}: {val}")
+    for field, entry in identity.items():
+        if field in id_order:
+            continue
+        val = entry.get("value") if isinstance(entry, dict) else entry
+        if val:
+            lines.append(f"{field.replace('_', ' ').title()}: {val}")
+
+    prefs = mem.get("preferences", {})
+    if prefs:
+        lines.append("")
+        lines.append("Preferences:")
+        for k, entry in list(prefs.items())[:15]:
+            val = entry.get("value") if isinstance(entry, dict) else entry
+            if val:
+                lines.append(f"  - {k.replace('_', ' ').title()}: {val}")
+
+    projects = mem.get("projects", {})
+    if projects:
+        lines.append("")
+        lines.append("Active Projects / Goals:")
+        for k, entry in list(projects.items())[:8]:
+            val = entry.get("value") if isinstance(entry, dict) else entry
+            if val:
+                lines.append(f"  - {k.replace('_', ' ').title()}: {val}")
+
+    rels = mem.get("relationships", {})
+    if rels:
+        lines.append("")
+        lines.append("People in their life:")
+        for k, entry in list(rels.items())[:10]:
+            val = entry.get("value") if isinstance(entry, dict) else entry
+            if val:
+                lines.append(f"  - {k.replace('_', ' ').title()}: {val}")
+
+    wishes = mem.get("wishes", {})
+    if wishes:
+        lines.append("")
+        lines.append("Wishes / Plans / Wants:")
+        for k, entry in list(wishes.items())[:8]:
+            val = entry.get("value") if isinstance(entry, dict) else entry
+            if val:
+                lines.append(f"  - {k.replace('_', ' ').title()}: {val}")
+
+    notes = mem.get("notes", {})
+    if notes:
+        lines.append("")
+        lines.append("Other notes:")
+        for k, entry in list(notes.items())[:8]:
+            val = entry.get("value") if isinstance(entry, dict) else entry
+            if val:
+                lines.append(f"  - {k}: {val}")
+
+    if not lines:
+        return ""
+
+    body = "\n".join(lines)
+    header = "[WHAT YOU KNOW ABOUT THIS PERSON  --  use naturally, never recite like a list]\n"
+    result = header + body
+    if len(result) > 2000:
+        result = result[:1997] + "..."
+    return result + "\n"

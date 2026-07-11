@@ -45,9 +45,10 @@ _BASE        = get_data_dir()
 
 def _load_config() -> dict:
     from dotenv import load_dotenv
+    from providers import get_provider_api_key
     dotenv_path = _BASE / ".env"
     load_dotenv(dotenv_path)
-    return {"gemini_api_key": os.getenv("GEMINI_API_KEY", ""), "os_system": os.getenv("OS_SYSTEM", "windows")}
+    return {"gemini_api_key": get_provider_api_key(), "os_system": os.getenv("OS_SYSTEM", "windows")}
 
 
 def _save_config_key(key: str, value) -> None:
@@ -70,9 +71,10 @@ def _save_config_key(key: str, value) -> None:
 
 
 def _get_api_key() -> str:
-    key = os.getenv("GEMINI_API_KEY", "")
+    from providers import get_provider_api_key
+    key = get_provider_api_key()
     if not key:
-        raise RuntimeError("GEMINI_API_KEY not set in .env")
+        raise RuntimeError("No API key set for selected provider. Check .env file.")
     return key
 
 
@@ -241,16 +243,16 @@ class _VisionSession:
         self._out_queue:  Optional[asyncio.Queue]             = None
         self._audio_in:   Optional[asyncio.Queue]             = None
         self._ready_evt:  threading.Event                     = threading.Event()
-        self._player                                           = None
+        self._speak                                            = None
         self._lock:       threading.Lock                       = threading.Lock()
 
-    def start(self, player=None, timeout: float = 25.0) -> None:
+    def start(self, speak=None, timeout: float = 25.0) -> None:
         with self._lock:
             if self._thread and self._thread.is_alive():
-                if player is not None:
-                    self._player = player
+                if speak is not None:
+                    self._speak = speak
                 return
-            self._player = player
+            self._speak = speak
             self._thread = threading.Thread(
                 target=self._run_event_loop,
                 daemon=True,
@@ -366,12 +368,12 @@ class _VisionSession:
                     chunk = sc.output_transcription.text.strip()
                     if chunk:
                         transcript.append(chunk)
-                        if self._player:
-                            self._player.write_nova(" ".join(transcript))
+                        if self._speak:
+                            self._speak.write_nova(" ".join(transcript))
 
                 if sc.turn_complete:
-                    if self._player:
-                        self._player.finish_nova()
+                    if self._speak:
+                        self._speak.finish_nova()
                     transcript = []
 
         except Exception as e:
@@ -389,7 +391,7 @@ class _VisionSession:
         try:
             while True:
                 chunk = await self._audio_in.get()
-                if self._player and getattr(self._player, "deafened", False):
+                if self._speak and getattr(self._speak, "deafened", False):
                     continue
                 await asyncio.to_thread(stream.write, chunk)
         except Exception as e:
@@ -404,21 +406,19 @@ _session_lock = threading.Lock()
 _session_up   = False
 
 
-def _ensure_session(player=None) -> None:
+def _ensure_session(speak=None) -> None:
     global _session_up
     with _session_lock:
         if not _session_up:
-            _session.start(player=player)
+            _session.start(speak=speak)
             _session_up = True
-        elif player is not None:
-            _session._player = player
+        elif speak is not None:
+            _session._speak = speak
 
 
 def screen_process(
     parameters:     dict,
-    response=None,
-    player=None,
-    session_memory=None,
+    speak=None,
 ) -> bool:
 
     params    = parameters or {}
@@ -432,7 +432,7 @@ def screen_process(
     print(f"[Vision] > angle={angle!r}  question='{user_text[:80]}'")
 
     try:
-        _ensure_session(player=player)
+        _ensure_session(speak=speak)
     except Exception as e:
         print(f"[Vision] Could not start session: {e}")
         return False
@@ -452,9 +452,9 @@ def screen_process(
     return True
 
 
-def warmup_session(player=None) -> None:
+def warmup_session() -> None:
     try:
-        _ensure_session(player=player)
+        _ensure_session()
     except Exception as e:
         print(f"[Vision] [WARN]  Warmup failed: {e}")
 

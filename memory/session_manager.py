@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import re
 import time
 import uuid
 from pathlib import Path
@@ -9,6 +10,12 @@ from config.paths import get_data_dir
 
 SESSIONS_DIR = get_data_dir() / "memory" / "sessions"
 INDEX_FILE = SESSIONS_DIR / "index.json"
+
+_SID_PATTERN = re.compile(r'^[a-f0-9]{12}$')
+
+
+def _is_valid_sid(sid: str) -> bool:
+    return bool(_SID_PATTERN.match(sid))
 
 
 def _now_iso():
@@ -80,6 +87,8 @@ class SessionManager:
         self._write_index(idx)
 
     def load_messages(self, sid: str) -> list:
+        if not _is_valid_sid(sid):
+            return []
         path = SESSIONS_DIR / f"{sid}.json"
         if not path.exists():
             return []
@@ -90,6 +99,8 @@ class SessionManager:
             return []
 
     def delete_session(self, sid: str):
+        if not _is_valid_sid(sid):
+            return
         path = SESSIONS_DIR / f"{sid}.json"
         if path.exists():
             path.unlink()

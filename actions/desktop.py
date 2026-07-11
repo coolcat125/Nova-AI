@@ -24,7 +24,8 @@ def _get_base_dir() -> Path:
     return Path(__file__).resolve().parent.parent
 
 def _get_api_key() -> str:
-    return os.getenv("GEMINI_API_KEY", "")
+    from providers import get_provider_api_key
+    return get_provider_api_key()
     
 def _get_desktop() -> Path:
     if _OS == "Linux":
@@ -33,70 +34,88 @@ def _get_desktop() -> Path:
             return Path(xdg)
     return Path.home() / "Desktop"
 
-def _build_sandbox() -> dict:
-    import time
-
-    safe_builtins = {
-        "print": print,
-        "len": len, "str": str, "int": int, "float": float,
-        "bool": bool, "list": list, "dict": dict, "tuple": tuple,
-        "range": range, "enumerate": enumerate, "sorted": sorted,
-        "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
-        "max": max, "min": min, "sum": sum, "abs": abs,
-        "zip": zip, "map": map, "filter": filter,
-    }
-
-    sandbox = {
-        "__builtins__": safe_builtins,
-        "Path": Path,
-        "time": time,
-        "shutil": type("shutil", (), {
-            "copy2":      shutil.copy2,
-            "copytree":   shutil.copytree,
-            "disk_usage": shutil.disk_usage,
-        })(),
-        "os_path": os.path,  
-    }
-
-    if _PYAUTOGUI:
-        sandbox["pyautogui"] = pyautogui
-
-    if _OS == "Windows":
-        try:
-            import ctypes
-            import winreg
-            sandbox["ctypes"] = ctypes
-            sandbox["winreg"] = type("winreg", (), {
-                # Sadece okuma
-                "OpenKey":      winreg.OpenKey,
-                "QueryValueEx": winreg.QueryValueEx,
-                "HKEY_CURRENT_USER": winreg.HKEY_CURRENT_USER,
-            })()
-        except ImportError:
-            pass
-
-    return sandbox
-
-
-def _execute_generated_code(code: str, player=None) -> str:
-    if not code or code.strip() == "UNSAFE":
-        return "This action cannot be performed safely."
-
-    # Kod temizleme
-    if code.startswith("```"):
-        lines = code.split("\n")
-        code  = "\n".join(lines[1:-1]).strip()
-
-    sandbox      = _build_sandbox()
-    output_lines = []
-    sandbox["__builtins__"]["print"] = lambda *a: output_lines.append(" ".join(str(x) for x in a))
-
+def _is_safe_url(url: str) -> bool:
+    from urllib.parse import urlparse
     try:
-        exec(compile(code, "<nova_desktop>", "exec"), sandbox)
-        return "\n".join(output_lines) if output_lines else "Done."
+        parsed = urlparse(url)
+        return parsed.scheme in ("http", "https")
+    except Exception:
+        return False
+
+
+def _validate_path_for_desktop(path: Path) -> bool:
+    try:
+        home = Path.home().resolve()
+        return path.resolve().is_relative_to(home)
+    except Exception:
+        return False
+
+
+def _list_desktop_files() -> str:
+    desktop = _get_desktop()
+    items = []
+    for p in sorted(desktop.iterdir()):
+        kind = "dir" if p.is_dir() else "file"
+        items.append(f"  {p.name}  ({kind})")
+    return f"Desktop contents ({len(items)} items):\n" + "\n".join(items[:50])
+
+
+def _get_disk_usage() -> str:
+    usage = shutil.disk_usage(_get_desktop())
+    total_gb = usage.total / (1024**3)
+    used_gb = usage.used / (1024**3)
+    free_gb = usage.free / (1024**3)
+    return f"Disk: {free_gb:.1f} GB free / {total_gb:.1f} GB total ({used_gb:.1f} GB used)"
+
+
+def _organize_desktop() -> str:
+    desktop = _get_desktop()
+    moved = 0
+    for p in desktop.iterdir():
+        if p.is_dir():
+            continue
+        ext = p.suffix.lower()
+        folder = None
+        for cat, exts in FILE_TYPE_MAP.items():
+            if ext in exts:
+                folder = cat
+                break
+        if folder:
+            dest = desktop / folder
+            dest.mkdir(exist_ok=True)
+            try:
+                shutil.move(str(p), str(dest / p.name))
+                moved += 1
+            except Exception:
+                pass
+    return f"Organized {moved} files into folders."
+
+
+def _get_screenshot() -> str:
+    try:
+        import pyautogui as pg
+        desktop = _get_desktop()
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = desktop / f"screenshot_{ts}.png"
+        pg.screenshot(str(path))
+        return f"Screenshot saved: {path}"
     except Exception as e:
-        print(f"[Desktop] Exec error: {e}\nCode:\n{code[:300]}")
-        return f"Execution error: {e}"
+        return f"Screenshot failed: {e}"
+
+
+ACTION_MAP = {
+    "list_files":        lambda params: _list_desktop_files(),
+    "disk_usage":        lambda params: _get_disk_usage(),
+    "organize":          lambda params: _organize_desktop(),
+    "screenshot":        lambda params: _get_screenshot(),
+}
+
+
+def _execute_action(action_name: str, params: dict) -> str:
+    handler = ACTION_MAP.get(action_name)
+    if handler:
+        return handler(params)
+    return f"Unknown desktop action: {action_name}. Available: {', '.join(ACTION_MAP)}"
 
 
 def _ask_gemini_for_desktop_action(task: str) -> str:
@@ -161,7 +180,8 @@ def set_wallpaper(image_path: str) -> str:
             if path.suffix.lower() in {".webp", ".png"}:
                 try:
                     from PIL import Image
-                    bmp_path = Path(tempfile.mktemp(suffix=".bmp"))
+                    with tempfile.NamedTemporaryFile(suffix=".bmp", delete=False) as tmp:
+                        bmp_path = Path(tmp.name)
                     Image.open(path).convert("RGB").save(bmp_path, "BMP")
                     path = bmp_path
                 except ImportError:
@@ -232,14 +252,17 @@ for (var i = 0; i < allDesktops.length; i++) {{
 
 
 def set_wallpaper_from_url(url: str) -> str:
+    if not _is_safe_url(url):
+        return "Invalid URL: only http:// and https:// are allowed."
     try:
         import urllib.request
         suffix = Path(url.split("?")[0]).suffix or ".jpg"
-        tmp    = Path(tempfile.mktemp(suffix=suffix))
-        urllib.request.urlretrieve(url, str(tmp))
-        result = set_wallpaper(str(tmp))
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+        urllib.request.urlretrieve(url, str(tmp_path))
+        result = set_wallpaper(str(tmp_path))
         try:
-            tmp.unlink()
+            tmp_path.unlink()
         except Exception:
             pass
         return result
@@ -406,12 +429,7 @@ def get_desktop_stats() -> str:
         f"  Path    : {desktop}"
     )
 
-def desktop_control(
-    parameters: dict = None,
-    response=None,
-    player=None,
-    session_memory=None,
-) -> str:
+def desktop_control(parameters: dict, speak=None) -> str:
     """
     parameters:
         action : wallpaper | wallpaper_url | current_wallpaper |
@@ -425,9 +443,6 @@ def desktop_control(
     params = parameters or {}
     action = params.get("action", "").lower().strip()
     task   = params.get("task", "").strip()
-
-    if player:
-        player.write_log(f"[Desktop] {action or task[:40]}")
 
     try:
         if action == "wallpaper":
@@ -458,17 +473,12 @@ def desktop_control(
             if not actual_task:
                 return "Please describe what you want to do on the desktop."
 
-            print(f"[Desktop] Asking Gemini: {actual_task}")
-            if player:
-                player.write_log("[Desktop] Generating action...")
-
-            code = _ask_gemini_for_desktop_action(actual_task)
-            return _execute_generated_code(code, player=player)
+            print(f"[Desktop] Task requested: {actual_task}")
+            return f"Desktop task '{actual_task}' not supported. Use: {', '.join(ACTION_MAP)}"
 
         else:
             if action:
-                code = _ask_gemini_for_desktop_action(action)
-                return _execute_generated_code(code, player=player)
+                return _execute_action(action, params)
             return "No action or task specified."
 
     except Exception as e:

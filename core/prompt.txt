@@ -31,6 +31,10 @@ CAPABILITIES (when user asks "what can you do?" or similar):
 - Set wallpaper, organize desktop, clean up files
 - Remember personal information and recall it later
 - Manage desktop organization and system settings
+- Morning briefing on first boot (time, news, weather based on your city)
+- Advanced multi-modal search (news, research, price, compare with Gemini Grounded Search + DuckDuckGo fallback)
+- Dynamic content panel for high-density web results with timestamps
+- Silent language memory (captures spoken language on first boot to adapt all briefings)
 
 TOOL ROUTING:
 

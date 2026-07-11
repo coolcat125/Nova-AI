@@ -21,7 +21,8 @@ BASE_DIR        = _get_base_dir()
 
 
 def _get_api_key() -> str:
-    return os.getenv("GEMINI_API_KEY", "")
+    from providers import get_provider_api_key
+    return get_provider_api_key()
 
 _MONTH_MAP: dict[str, int] = {
 
@@ -271,8 +272,11 @@ def _format_text_report(
     return "\n".join(lines)
 
 def _save_to_desktop(content: str, origin: str, destination: str) -> str:
+    import re as _re
     ts       = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"flights_{origin}_{destination}_{ts}.txt".replace(" ", "_")
+    safe_origin = _re.sub(r'[^a-zA-Z0-9]', '', origin)[:20]
+    safe_dest = _re.sub(r'[^a-zA-Z0-9]', '', destination)[:20]
+    filename = f"flights_{safe_origin}_{safe_dest}_{ts}.txt"
     desktop  = Path.home() / "Desktop"
     desktop.mkdir(parents=True, exist_ok=True)
     filepath = desktop / filename
@@ -289,7 +293,7 @@ def _save_to_desktop(content: str, origin: str, destination: str) -> str:
     return str(filepath)
 
 
-def flight_finder(parameters: dict, player=None, speak=None) -> str:
+def flight_finder(parameters: dict, speak=None) -> str:
     params = parameters or {}
 
     origin      = params.get("origin",      "").strip()
@@ -311,9 +315,6 @@ def flight_finder(parameters: dict, player=None, speak=None) -> str:
 
     date        = _parse_date(date_raw)
     return_date = _parse_date(return_raw) if return_raw else None
-
-    if player:
-        player.write_log(f"[FlightFinder] {origin}  ->  {destination} on {date}")
 
     if speak:
         speak(f"Searching flights from {origin} to {destination} on {date}, sir.")

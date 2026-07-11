@@ -34,43 +34,61 @@ def _should_run(task: dict) -> bool:
         return False
 
     now = datetime.now()
-    schedule = task["schedule"]
+    schedule = task.get("schedule", "")
 
     if schedule.startswith("daily:"):
         parts = schedule.split(":")
         if len(parts) < 3:
             return False
-        hour, minute = int(parts[1]), int(parts[2])
+        try:
+            hour, minute = int(parts[1]), int(parts[2])
+        except (ValueError, IndexError):
+            return False
         if now.hour != hour or now.minute != minute:
             return False
         last_run = task.get("last_run")
         if last_run is None:
             return True
-        last_dt = datetime.fromisoformat(last_run)
+        try:
+            last_dt = datetime.fromisoformat(last_run)
+        except ValueError:
+            return True
         return last_dt.date() != now.date()
 
     elif schedule.startswith("hourly:"):
         parts = schedule.split(":")
         if len(parts) < 2:
             return False
-        minute = int(parts[1])
+        try:
+            minute = int(parts[1])
+        except (ValueError, IndexError):
+            return False
         if now.minute != minute:
             return False
         last_run = task.get("last_run")
         if last_run is None:
             return True
-        last_dt = datetime.fromisoformat(last_run)
+        try:
+            last_dt = datetime.fromisoformat(last_run)
+        except ValueError:
+            return True
         return last_dt.hour != now.hour or last_dt.date() != now.date()
 
     elif schedule.startswith("interval:"):
         parts = schedule.split(":")
         if len(parts) < 2:
             return False
-        minutes = int(parts[1])
+        try:
+            minutes = int(parts[1])
+        except (ValueError, IndexError):
+            return False
         last_run = task.get("last_run")
         if last_run is None:
             return True
-        last_dt = datetime.fromisoformat(last_run)
+        try:
+            last_dt = datetime.fromisoformat(last_run)
+        except ValueError:
+            return True
         return (now - last_dt).total_seconds() >= minutes * 60
 
     elif schedule.startswith("at:"):

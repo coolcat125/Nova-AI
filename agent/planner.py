@@ -178,6 +178,7 @@ def create_plan(goal: str, context: str = "") -> dict:
         resp = call_llm(contents=user_input, system_instruction=PLANNER_PROMPT)
         text     = resp["content"].strip()
         text     = re.sub(r"```(?:json)?", "", text).strip().rstrip("`").strip()
+        text     = text[:50000]
 
         plan = json.loads(text)
 

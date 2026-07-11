@@ -31,7 +31,8 @@ def _get_base_dir() -> Path:
     return Path(__file__).resolve().parent.parent
 
 def _get_api_key() -> str:
-    return os.getenv("GEMINI_API_KEY", "")
+    from providers import get_provider_api_key
+    return get_provider_api_key()
 
 def volume_up():
     if _OS == "Windows":
@@ -113,13 +114,22 @@ def brightness_up():
                 capture_output=True).returncode == 0:
             subprocess.run(["brightnessctl", "set", "+10%"], capture_output=True)
         else:
-            subprocess.run(
-                'xrandr --output $(xrandr | grep " connected" | head -1 | cut -d " " -f1)'
-                ' --brightness $(python3 -c "import subprocess; '
-                'b=float(subprocess.check_output([\"xrandr\",\"--verbose\"]).decode()'
-                '.split(\"Brightness:\")[1].split()[0]); print(min(1.0,b+0.1))")',
-                shell=True, capture_output=True
-            )
+            try:
+                output = subprocess.check_output(
+                    ["xrandr", "--verbose"], timeout=5
+                ).decode()
+                current = float(output.split("Brightness:")[1].split()[0])
+                new_brightness = min(1.0, current + 0.1)
+                connected = [
+                    line.split()[0] for line in output.splitlines()
+                    if " connected" in line
+                ][0]
+                subprocess.run(
+                    ["xrandr", "--output", connected, "--brightness", str(new_brightness)],
+                    capture_output=True, timeout=5
+                )
+            except Exception as e:
+                print(f"[Settings] Brightness up failed: {e}")
 
 def brightness_down():
     if _OS == "Windows":
@@ -142,13 +152,22 @@ def brightness_down():
                 capture_output=True).returncode == 0:
             subprocess.run(["brightnessctl", "set", "10%-"], capture_output=True)
         else:
-            subprocess.run(
-                'xrandr --output $(xrandr | grep " connected" | head -1 | cut -d " " -f1)'
-                ' --brightness $(python3 -c "import subprocess; '
-                'b=float(subprocess.check_output([\"xrandr\",\"--verbose\"]).decode()'
-                '.split(\"Brightness:\")[1].split()[0]); print(max(0.1,b-0.1))")',
-                shell=True, capture_output=True
-            )
+            try:
+                output = subprocess.check_output(
+                    ["xrandr", "--verbose"], timeout=5
+                ).decode()
+                current = float(output.split("Brightness:")[1].split()[0])
+                new_brightness = max(0.1, current - 0.1)
+                connected = [
+                    line.split()[0] for line in output.splitlines()
+                    if " connected" in line
+                ][0]
+                subprocess.run(
+                    ["xrandr", "--output", connected, "--brightness", str(new_brightness)],
+                    capture_output=True, timeout=5
+                )
+            except Exception as e:
+                print(f"[Settings] Brightness down failed: {e}")
 
 def close_app():
     if _OS == "Darwin": pyautogui.hotkey("command", "q")
@@ -582,10 +601,8 @@ Rules:
         return {"action": description.lower().replace(" ", "_"), "value": None}
 
 def computer_settings(
-    parameters: dict = None,
-    response=None,
-    player=None,
-    session_memory=None,
+    parameters: dict,
+    speak=None,
 ) -> str:
     if not _PYAUTOGUI:
         return "pyautogui is not installed. Run: pip install pyautogui"
@@ -607,8 +624,6 @@ def computer_settings(
         return "No action could be determined."
 
     print(f"[Settings] Action: {action}  Value: {value}  OS: {_OS}")
-    if player:
-        player.write_log(f"[Settings] {action}")
 
     if action in _DANGEROUS_ACTIONS:
         confirmed = str(params.get("confirmed", "")).lower()

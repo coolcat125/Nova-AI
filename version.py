@@ -1,7 +1,7 @@
 import platform
 
 VERSIONS: dict[str, str] = {
-    "windows": "4.0.0",
+    "windows": "5.0.0",
     "macos": "1.0.0",
     "linux": "1.0.0",
 }

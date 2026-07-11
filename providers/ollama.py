@@ -144,6 +144,10 @@ class OllamaProvider(BaseLLM):
         base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
         self._base_url = base_url.rstrip("/")
         self._sentence_mode = True
+        
+        if "localhost" not in self._base_url and "127.0.0.1" not in self._base_url:
+            print("[Ollama] WARNING: Non-localhost Ollama URL detected. Ensure Ollama is configured with TLS.")
+        
         _ensure_ollama_serve()
 
     def generate(self, model: str, system_instruction: Optional[str] = None,

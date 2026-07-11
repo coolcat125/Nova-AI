@@ -23,17 +23,17 @@ def _scripts_dir() -> Path:
 
 
 def _sanitise(text: str, max_len: int = 200) -> str:
-    return (
-        text.replace("\\", "")
-            .replace('"', "")
-            .replace("'", "")
-            .replace("\n", " ")
-            .replace("\r", "")
-            .strip()
-    )[:max_len]
+    import re
+    return re.sub(r'[^\w\s\-.]', '', text)[:max_len]
+
+
+def _sanitise_task_name(task_name: str) -> str:
+    import re
+    return re.sub(r'[^a-zA-Z0-9_]', '', task_name)[:50]
 
 def _write_notify_script(task_name: str, message: str, os_name: str) -> Path:
-    script_path = _scripts_dir() / f"{task_name}.py"
+    safe_name = _sanitise_task_name(task_name)
+    script_path = _scripts_dir() / f"{safe_name}.py"
     msg_literal = json.dumps(message)  
 
     if os_name == "windows":
@@ -87,10 +87,8 @@ except Exception:
 if not notified:
     try:
         import subprocess
-        script = 'display notification "{{}}" with title "Nova Reminder"'.format(
-            message.replace('"', '')
-        )
-        subprocess.run(["osascript", "-e", script], check=False)
+        script = 'on run argv\n  display notification (item 1 of argv) with title "Nova Reminder"\nend run'
+        subprocess.run(["osascript", "-e", script, message], check=False)
     except Exception:
         pass
 """
@@ -273,9 +271,7 @@ def _schedule_linux(target_dt: datetime, task_name: str,
 
 def reminder(
     parameters: dict,
-    response=None,
-    player=None,
-    session_memory=None,
+    speak=None,
 ) -> str:
 
     date_str = parameters.get("date", "").strip()
@@ -316,9 +312,6 @@ def reminder(
 
     if not job_id:
         return "I couldn't register the reminder with the system scheduler."
-
-    if player:
-        player.write_log(f"[Reminder] [OK] {date_str} {time_str}  --  {safe_msg[:40]}")
 
     friendly_time = target_dt.strftime("%B %d at %I:%M %p")
     return f"Reminder set for {friendly_time}."

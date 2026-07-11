@@ -27,6 +27,7 @@ def _is_safe_path(target: Path) -> bool:
     except Exception:
         return False
 
+
 def _get_desktop() -> Path:
     if _OS == "Linux":
         xdg = os.environ.get("XDG_DESKTOP_DIR", "")
@@ -83,7 +84,10 @@ def _resolve_path(raw: str) -> Path:
     lower = raw.strip().lower()
     if lower in shortcuts:
         return shortcuts[lower]
-    return Path(raw).expanduser()
+    p = Path(raw).expanduser()
+    if not _is_safe_path(p):
+        return Path.home() / "Desktop"
+    return p
 
 def _format_size(b: int) -> str:
     for unit in ["B", "KB", "MB", "GB", "TB"]:

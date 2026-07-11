@@ -3,10 +3,35 @@ import json
 from openai import OpenAI
 from .base import BaseLLM
 
+_TYPE_MAP = {"STRING": "string", "OBJECT": "object", "ARRAY": "array", "NUMBER": "number", "BOOLEAN": "boolean", "INTEGER": "integer"}
+
+
+def _lowercase_types(schema):
+    """Recursively convert Gemini-style uppercase types to lowercase for OpenAI/DeepSeek."""
+    if isinstance(schema, dict):
+        result = {}
+        for k, v in schema.items():
+            if k == "type" and isinstance(v, str) and v.upper() in _TYPE_MAP:
+                result[k] = _TYPE_MAP[v.upper()]
+            elif k in ("properties", "items") and isinstance(v, dict):
+                result[k] = _lowercase_types(v)
+            elif k == "required" and isinstance(v, list):
+                result[k] = v
+            elif isinstance(v, (dict, list)):
+                result[k] = _lowercase_types(v)
+            else:
+                result[k] = v
+        return result
+    elif isinstance(schema, list):
+        return [_lowercase_types(item) for item in schema]
+    return schema
+
 
 class OpenAIProvider(BaseLLM):
     def __init__(self):
-        api_key = os.environ.get("OPENAI_API_KEY", "") or "sk-placeholder"
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY environment variable is required.")
         base_url = os.environ.get("OPENAI_BASE_URL", "") or None
         self.client = OpenAI(api_key=api_key, base_url=base_url)
 
@@ -29,15 +54,17 @@ class OpenAIProvider(BaseLLM):
             for t in tools:
                 if "function_declarations" in t:
                     for fd in t["function_declarations"]:
+                        params = _lowercase_types(fd.get("parameters", fd))
                         openai_tools.append({
                             "type": "function",
                             "function": {
                                 "name": fd.get("name", ""),
                                 "description": fd.get("description", ""),
-                                "parameters": fd.get("parameters", fd),
+                                "parameters": params,
                             }
                         })
                 elif isinstance(t, dict) and t.get("type") == "function":
+                    t["function"]["parameters"] = _lowercase_types(t["function"].get("parameters", {}))
                     openai_tools.append(t)
                 elif isinstance(t, dict) and "name" in t:
                     openai_tools.append({
@@ -45,7 +72,7 @@ class OpenAIProvider(BaseLLM):
                         "function": {
                             "name": t["name"],
                             "description": t.get("description", ""),
-                            "parameters": t.get("parameters", t),
+                            "parameters": _lowercase_types(t.get("parameters", t)),
                         }
                     })
             if openai_tools:

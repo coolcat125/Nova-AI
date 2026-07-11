@@ -1269,7 +1269,7 @@ class SetupOverlay(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(f"""
             SetupOverlay {{
-                background: rgba(0, 6, 10, 245);
+                background: rgb(0, 6, 10);
             }}
         """)
 
@@ -1302,7 +1302,7 @@ class SetupOverlay(QWidget):
         layout.addWidget(_lbl("LLM PROVIDER", 13, color=C.TEXT_DIM,
                                align=Qt.AlignmentFlag.AlignLeft))
         self._provider_cb = _ArrowCombo()
-        self._provider_cb.addItems(["Gemini", "OpenAI", "Ollama"])
+        self._provider_cb.addItems(["OpenCode", "Ollama", "Gemini", "OpenAI"])
         self._provider_cb.setFont(QFont("Courier New", 14, QFont.Weight.Bold))
         self._provider_cb.setFixedHeight(36)
         self._provider_cb.setStyleSheet(f"""
@@ -1321,6 +1321,426 @@ class SetupOverlay(QWidget):
         """)
         self._provider_cb.currentIndexChanged.connect(self._on_provider_change)
         layout.addWidget(self._provider_cb)
+        layout.addSpacing(3)
+
+        self._model_lbl = _lbl("MODEL", 13, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self._model_lbl)
+
+        self._model_combo = _ArrowCombo()
+        self._model_combo.setEditable(False)
+        self._model_combo.setFont(QFont("Courier New", 14, QFont.Weight.Bold))
+        self._model_combo.setFixedHeight(36)
+        self._model_combo.setStyleSheet(f"""
+            QComboBox {{
+                background: #000d12; color: {C.TEXT};
+                border: 1px solid {C.BORDER}; border-radius: 4px; padding: 2px 8px;
+            }}
+            QComboBox::drop-down {{
+                border: none; width: 28px;
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+            }}
+            QComboBox::down-arrow {{
+                image: none; width: 0px; height: 0px;
+            }}
+        """)
+        self._model_combo.hide()
+        layout.addWidget(self._model_combo)
+
+        self._model_input = QLineEdit()
+        self._model_input.setPlaceholderText("Enter model ID...")
+        self._model_input.setFont(QFont("Courier New", 14, QFont.Weight.Bold))
+        self._model_input.setFixedHeight(36)
+        self._model_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: #000d12; color: {C.TEXT};
+                border: 1px solid {C.BORDER}; border-radius: 4px; padding: 4px 8px;
+            }}
+            QLineEdit:focus {{ border: 1px solid {C.PRI}; }}
+        """)
+        self._model_input.hide()
+        layout.addWidget(self._model_input)
+
+        self._model_results = QListWidget()
+        self._model_results.setFont(QFont("Courier New", 14, QFont.Weight.Bold))
+        self._model_results.setFixedHeight(0)
+        self._model_results.setStyleSheet(f"""
+            QListWidget {{
+                background: #000d12; color: {C.TEXT};
+                border: 1px solid {C.BORDER}; border-radius: 4px;
+                outline: none;
+            }}
+            QListWidget::item {{
+                padding: 8px 10px;
+                min-height: 32px;
+            }}
+            QListWidget::item:selected {{
+                background: {C.PRI_GHO}; color: {C.PRI};
+            }}
+            QListWidget::item:hover {{
+                background: #0a0018; color: {C.TEXT};
+            }}
+        """)
+        self._model_results.itemClicked.connect(self._on_model_result_click)
+        self._model_input.textChanged.connect(self._filter_model_results)
+        layout.addWidget(self._model_results)
+
+        self._model_display_names = {
+            "gemini-2.0-flash": "Gemini 2.0 Flash",
+            "gemini-2.5-flash": "Gemini 2.5 Flash",
+            "gemini-2.5-pro": "Gemini 2.5 Pro",
+            "gemini-2.0-flash-lite": "Gemini 2.0 Flash Lite",
+            "gemini-1.5-flash": "Gemini 1.5 Flash",
+            "gemini-1.5-pro": "Gemini 1.5 Pro",
+            "gpt-4o": "GPT-4o",
+            "gpt-4o-mini": "GPT-4o Mini",
+            "gpt-4-turbo": "GPT-4 Turbo",
+            "gpt-4": "GPT-4",
+            "gpt-3.5-turbo": "GPT-3.5 Turbo",
+            "o1": "o1",
+            "o1-mini": "o1 Mini",
+            "o1-pro": "o1 Pro",
+            "o3-mini": "o3 Mini",
+            "big-pickle": "Big Pickle",
+            "mimo-v2.5-free": "MiMo V2.5 Free",
+            "mimo-v2-flash-free": "MiMo V2 Flash Free",
+            "deepseek-v4-flash-free": "DeepSeek V4 Flash Free",
+            "mimo-v2-pro": "MiMo V2 Pro",
+            "deepseek-v4": "DeepSeek V4",
+            "big-pickle": "Big Pickle",
+            "deepseek-v4-flash-free": "DeepSeek V4 Flash Free",
+            "mimo-v2.5-free": "MiMo-V2.5 Free",
+            "nemotron-3-ultra-free": "Nemotron 3 Ultra Free",
+            "north-mini-code-free": "North Mini Code Free",
+            "deepseek-v4-pro": "DeepSeek V4 Pro",
+            "deepseek-v4-flash": "DeepSeek V4 Flash",
+            "minimax-m3": "MiniMax M3",
+            "minimax-m2.7": "MiniMax M2.7",
+            "minimax-m2.5": "MiniMax M2.5",
+            "glm-5.2": "GLM 5.2",
+            "glm-5.1": "GLM 5.1",
+            "glm-5": "GLM 5",
+            "kimi-k2.5": "Kimi K2.5",
+            "kimi-k2.6": "Kimi K2.6",
+            "kimi-k2.7-code": "Kimi K2.7 Code",
+            "grok-build-0.1": "Grok Build 0.1",
+            "claude-fable-5": "Claude Fable 5",
+            "claude-opus-4-8": "Claude Opus 4.8",
+            "claude-opus-4-7": "Claude Opus 4.7",
+            "claude-opus-4-6": "Claude Opus 4.6",
+            "claude-opus-4-5": "Claude Opus 4.5",
+            "claude-opus-4-1": "Claude Opus 4.1",
+            "claude-sonnet-5": "Claude Sonnet 5",
+            "claude-sonnet-4-6": "Claude Sonnet 4.6",
+            "claude-sonnet-4-5": "Claude Sonnet 4.5",
+            "claude-sonnet-4": "Claude Sonnet 4",
+            "claude-haiku-4-5": "Claude Haiku 4.5",
+            "gemini-3.5-flash": "Gemini 3.5 Flash",
+            "gemini-3.1-pro": "Gemini 3.1 Pro",
+            "gemini-3-flash": "Gemini 3 Flash",
+            "qwen3.7-max": "Qwen 3.7 Max",
+            "qwen3.7-plus": "Qwen 3.7 Plus",
+            "qwen3.6-plus": "Qwen 3.6 Plus",
+            "qwen3.5-plus": "Qwen 3.5 Plus",
+            "gpt-5.5": "GPT 5.5",
+            "gpt-5.5-pro": "GPT 5.5 Pro",
+            "gpt-5.4": "GPT 5.4",
+            "gpt-5.4-pro": "GPT 5.4 Pro",
+            "gpt-5.4-mini": "GPT 5.4 Mini",
+            "gpt-5.4-nano": "GPT 5.4 Nano",
+            "gpt-5.3-codex-spark": "GPT 5.3 Codex Spark",
+            "gpt-5.3-codex": "GPT 5.3 Codex",
+            "gpt-5.2": "GPT 5.2",
+            "gpt-5.2-codex": "GPT 5.2 Codex",
+            "gpt-5.1": "GPT 5.1",
+            "gpt-5.1-codex-max": "GPT 5.1 Codex Max",
+            "gpt-5.1-codex": "GPT 5.1 Codex",
+            "gpt-5.1-codex-mini": "GPT 5.1 Codex Mini",
+            "gpt-5": "GPT 5",
+            "gpt-5-codex": "GPT 5 Codex",
+            "gpt-5-nano": "GPT 5 Nano",
+            "llama3.1": "Llama 3.1",
+            "deepseek-r1": "DeepSeek R1",
+            "nomic-embed-text": "Nomic Embed Text",
+            "llama3.2": "Llama 3.2",
+            "gemma3": "Gemma 3",
+            "qwen2.5": "Qwen 2.5",
+            "qwen3": "Qwen 3",
+            "mistral": "Mistral",
+            "gemma2": "Gemma 2",
+            "llama3": "Llama 3",
+            "qwen2.5-coder": "Qwen 2.5 Coder",
+            "phi3": "Phi 3",
+            "gemma4": "Gemma 4",
+            "qwen3.5": "Qwen 3.5",
+            "llava": "LLaVA",
+            "mxbai-embed-large": "MXBAI Embed Large",
+            "gpt-oss": "GPT-OSS",
+            "phi4": "Phi 4",
+            "gemma": "Gemma",
+            "llama2": "Llama 2",
+            "qwen": "Qwen",
+            "qwen3-coder": "Qwen 3 Coder",
+            "glm-ocr": "GLM OCR",
+            "qwen2": "Qwen 2",
+            "codellama": "Code Llama",
+            "minicpm-v": "MiniCPM-V",
+            "mistral-nemo": "Mistral Nemo",
+            "tinyllama": "TinyLlama",
+            "bge-m3": "BGE M3",
+            "llama3.2-vision": "Llama 3.2 Vision",
+            "deepseek-coder": "DeepSeek Coder",
+            "qwen3-vl": "Qwen 3 VL",
+            "llama3.3": "Llama 3.3",
+            "dolphin3": "Dolphin 3",
+            "deepseek-v3": "DeepSeek V3",
+            "olmo2": "OLMo 2",
+            "smollm2": "SmolLM 2",
+            "qwen3.6": "Qwen 3.6",
+            "all-minilm": "All-MiniLM",
+            "snowflake-arctic-embed": "Snowflake Arctic Embed",
+            "mistral-small": "Mistral Small",
+            "codegemma": "CodeGemma",
+            "granite3.1-moe": "Granite 3.1 MoE",
+            "qwen2.5vl": "Qwen 2.5 VL",
+            "orca-mini": "Orca Mini",
+            "starcoder2": "StarCoder 2",
+            "deepseek-coder-v2": "DeepSeek Coder V2",
+            "mixtral": "Mixtral",
+            "nemotron-3-super": "Nemotron 3 Super",
+            "llama2-uncensored": "Llama 2 Uncensored",
+            "falcon3": "Falcon 3",
+            "qwen3-embedding": "Qwen 3 Embedding",
+            "glm-5": "GLM 5",
+            "minimax-m2.5": "MiniMax M2.5",
+            "llava-llama3": "LLaVA Llama 3",
+            "mistral-small3.2": "Mistral Small 3.2",
+            "glm-5.1": "GLM 5.1",
+            "minimax-m2.7": "MiniMax M2.7",
+            "qwq": "QwQ",
+            "gemini-3-flash-preview": "Gemini 3 Flash Preview",
+            "glm-4.7": "GLM 4.7",
+            "deepseek-v3.2": "DeepSeek V3.2",
+            "minimax-m2.1": "MiniMax M2.1",
+            "cogito": "Cogito",
+            "dolphin-llama3": "Dolphin Llama 3",
+            "smollm": "SmolLM",
+            "gemma3n": "Gemma 3n",
+            "dolphin-mixtral": "Dolphin Mixtral",
+            "qwen3-coder-next": "Qwen 3 Coder Next",
+            "llama4": "Llama 4",
+            "translategemma": "TranslateGemma",
+            "phi4-reasoning": "Phi 4 Reasoning",
+            "dolphin-phi": "Dolphin Phi",
+            "dolphin-mistral": "Dolphin Mistral",
+            "phi": "Phi",
+            "hermes3": "Hermes 3",
+            "command-r": "Command R",
+            "magistral": "Magistral",
+            "granite-code": "Granite Code",
+            "moondream": "Moondream",
+            "embeddinggemma": "EmbeddingGemma",
+            "glm-4.7-flash": "GLM 4.7 Flash",
+            "granite4": "Granite 4",
+            "codestral": "Codestral",
+            "ministral-3": "Ministral 3",
+            "yi": "Yi",
+            "phi4-mini": "Phi 4 Mini",
+            "deepscaler": "DeepScaler",
+            "lfm2.5-thinking": "LFM 2.5 Thinking",
+            "zephyr": "Zephyr",
+            "wizard-vicuna-uncensored": "Wizard Vicuna Uncensored",
+            "mistral-large": "Mistral Large",
+            "sqlcoder": "SQLCoder",
+            "glm4": "GLM 4",
+            "openchat": "OpenChat",
+            "starcoder": "StarCoder",
+            "wizardlm2": "WizardLM 2",
+            "openthinker": "OpenThinker",
+            "deepseek-v2": "DeepSeek V2",
+            "nous-hermes": "Nous Hermes",
+        }
+
+        self._provider_models = {
+            "gemini": [
+                "gemini-2.0-flash-lite",
+                "gemini-2.0-flash",
+                "gemini-2.5-flash",
+                "gemini-2.5-pro",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+            ],
+            "openai": [
+                "gpt-4o",
+                "gpt-4o-mini",
+                "gpt-4-turbo",
+                "gpt-4",
+                "gpt-3.5-turbo",
+                "o1",
+                "o1-mini",
+                "o1-pro",
+                "o3-mini",
+            ],
+            "opencode": [
+                "big-pickle",
+                "deepseek-v4-flash-free",
+                "mimo-v2.5-free",
+                "nemotron-3-ultra-free",
+                "north-mini-code-free",
+                "hy3-free",
+                "deepseek-v4-pro",
+                "deepseek-v4-flash",
+                "minimax-m3",
+                "minimax-m2.7",
+                "minimax-m2.5",
+                "glm-5.2",
+                "glm-5.1",
+                "glm-5",
+                "kimi-k2.5",
+                "kimi-k2.6",
+                "kimi-k2.7-code",
+                "grok-4.5",
+                "grok-build-0.1",
+                "claude-fable-5",
+                "claude-opus-4-8",
+                "claude-opus-4-7",
+                "claude-opus-4-6",
+                "claude-opus-4-5",
+                "claude-opus-4-1",
+                "claude-sonnet-5",
+                "claude-sonnet-4-6",
+                "claude-sonnet-4-5",
+                "claude-sonnet-4",
+                "claude-haiku-4-5",
+                "gemini-3.5-flash",
+                "gemini-3.1-pro",
+                "gemini-3-flash",
+                "qwen3.6-plus",
+                "qwen3.5-plus",
+                "gpt-5.6-sol",
+                "gpt-5.6-terra",
+                "gpt-5.6-luna",
+                "gpt-5.5",
+                "gpt-5.5-pro",
+                "gpt-5.4",
+                "gpt-5.4-pro",
+                "gpt-5.4-mini",
+                "gpt-5.4-nano",
+                "gpt-5.3-codex-spark",
+                "gpt-5.3-codex",
+                "gpt-5.2",
+                "gpt-5.2-codex",
+                "gpt-5.1",
+                "gpt-5.1-codex-max",
+                "gpt-5.1-codex",
+                "gpt-5.1-codex-mini",
+                "gpt-5",
+                "gpt-5-codex",
+                "gpt-5-nano",
+            ],
+            "ollama": [
+                "llama3.1",
+                "deepseek-r1",
+                "nomic-embed-text",
+                "llama3.2",
+                "gemma3",
+                "qwen2.5",
+                "qwen3",
+                "mistral",
+                "gemma2",
+                "llama3",
+                "qwen2.5-coder",
+                "phi3",
+                "gemma4",
+                "qwen3.5",
+                "llava",
+                "mxbai-embed-large",
+                "gpt-oss",
+                "phi4",
+                "gemma",
+                "llama2",
+                "qwen",
+                "qwen3-coder",
+                "glm-ocr",
+                "qwen2",
+                "codellama",
+                "minicpm-v",
+                "mistral-nemo",
+                "tinyllama",
+                "bge-m3",
+                "llama3.2-vision",
+                "deepseek-coder",
+                "qwen3-vl",
+                "llama3.3",
+                "dolphin3",
+                "deepseek-v3",
+                "olmo2",
+                "smollm2",
+                "qwen3.6",
+                "all-minilm",
+                "snowflake-arctic-embed",
+                "mistral-small",
+                "codegemma",
+                "granite3.1-moe",
+                "qwen2.5vl",
+                "orca-mini",
+                "starcoder2",
+                "deepseek-coder-v2",
+                "mixtral",
+                "nemotron-3-super",
+                "llama2-uncensored",
+                "falcon3",
+                "qwen3-embedding",
+                "glm-5",
+                "minimax-m2.5",
+                "llava-llama3",
+                "mistral-small3.2",
+                "glm-5.1",
+                "minimax-m2.7",
+                "qwq",
+                "gemini-3-flash-preview",
+                "glm-4.7",
+                "deepseek-v3.2",
+                "minimax-m2.1",
+                "cogito",
+                "dolphin-llama3",
+                "smollm",
+                "gemma3n",
+                "dolphin-mixtral",
+                "qwen3-coder-next",
+                "llama4",
+                "translategemma",
+                "phi4-reasoning",
+                "dolphin-phi",
+                "dolphin-mistral",
+                "phi",
+                "hermes3",
+                "command-r",
+                "magistral",
+                "granite-code",
+                "moondream",
+                "embeddinggemma",
+                "glm-4.7-flash",
+                "granite4",
+                "codestral",
+                "ministral-3",
+                "yi",
+                "phi4-mini",
+                "deepscaler",
+                "lfm2.5-thinking",
+                "zephyr",
+                "wizard-vicuna-uncensored",
+                "mistral-large",
+                "sqlcoder",
+                "glm4",
+                "openchat",
+                "starcoder",
+                "wizardlm2",
+                "openthinker",
+                "deepseek-v2",
+                "nous-hermes",
+            ],
+        }
         layout.addSpacing(3)
 
         self._key_lbl = _lbl("GEMINI API KEY", 13, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignLeft)
@@ -1344,11 +1764,11 @@ class SetupOverlay(QWidget):
         self._key_toggle.setFixedSize(90, 36)
         self._key_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self._key_toggle.setCheckable(True)
-        self._key_toggle.setFont(QFont("Courier New", 14, QFont.Weight.Bold))
+        self._key_toggle.setFont(QFont("Courier New", 22, QFont.Weight.Bold))
         self._key_toggle.setStyleSheet(f"""
             QPushButton {{
                 background: #000d12; color: {C.PRI};
-                border: 1px solid {C.BORDER}; border-radius: 4px; font-size: 14px; font-weight: bold; font-family: "Courier New";
+                border: 1px solid {C.BORDER}; border-radius: 4px; font-size: 22px; font-weight: bold; font-family: "Courier New";
             }}
             QPushButton:hover {{
                 border: 1px solid {C.PRI}; color: {C.PRI};
@@ -1362,7 +1782,7 @@ class SetupOverlay(QWidget):
         key_row.addWidget(self._key_toggle)
         layout.addLayout(key_row)
         self._key_link = QLabel(
-                '<a href="https://aistudio.google.com" style="color: #ff80d5; text-decoration: underline;">Get your free key <span style="font-size:16px;">&rarr;</span></a>'
+                '<a href="https://opencode.ai/zen" style="color: #ff80d5; text-decoration: underline;">Get your OpenCode key <span style="font-size:16px;">&rarr;</span></a>'
         )
         self._key_link.setFont(QFont("Courier New", 13, QFont.Weight.Bold))
         self._key_link.setOpenExternalLinks(True)
@@ -1385,6 +1805,12 @@ class SetupOverlay(QWidget):
         """)
         self._url_input.hide()
         layout.addWidget(self._url_input)
+        self._provider_cb.setCurrentIndex(0)
+        self._init_model_picker("opencode")
+        self._key_lbl.setText("OPENCODE API KEY")
+        self._key_input.setPlaceholderText("sk-...")
+        self._url_lbl.hide()
+        self._url_input.hide()
         layout.addSpacing(6)
 
         sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
@@ -1426,7 +1852,7 @@ class SetupOverlay(QWidget):
         self._remember_cb = QPushButton()
         self._remember_cb.setCheckable(True)
         self._remember_cb.setChecked(True)
-        self._remember_cb.setFixedSize(24, 24)
+        self._remember_cb.setFixedSize(34, 24)
         self._remember_cb.setCursor(Qt.CursorShape.PointingHandCursor)
         self._remember_cb.setStyleSheet(f"""
             QPushButton {{
@@ -1440,9 +1866,9 @@ class SetupOverlay(QWidget):
         self._draw_checkmark(True)
         self._remember_cb.toggled.connect(lambda c: self._draw_checkmark(c))
         rem_row.addWidget(self._remember_cb)
-        rem_lbl = QLabel("Remember settings (skip this screen next time)")
-        rem_lbl.setFont(QFont("Courier New", 14, QFont.Weight.Bold))
-        rem_lbl.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
+        rem_lbl = QLabel("Remember settings")
+        rem_lbl.setFont(QFont("Courier New", 18, QFont.Weight.Bold))
+        rem_lbl.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent; padding-left: 1px;")
         rem_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
         rem_lbl.mousePressEvent = lambda e: self._remember_cb.toggle()
         rem_row.addWidget(rem_lbl)
@@ -1466,10 +1892,11 @@ class SetupOverlay(QWidget):
         layout.addWidget(init_btn)
 
     def _on_provider_change(self, idx: int):
-        providers = {0: "gemini", 1: "openai", 2: "ollama"}
+        providers = {0: "opencode", 1: "ollama", 2: "gemini", 3: "openai"}
         prov = providers.get(idx, "gemini")
         self._key_input.clear()
         self._key_toggle.setChecked(False)
+        self._init_model_picker(prov)
         if prov == "gemini":
             self._key_lbl.setText("GEMINI API KEY")
             self._key_input.setPlaceholderText("AIza...")
@@ -1506,6 +1933,119 @@ class SetupOverlay(QWidget):
             self._key_link.hide()
             self._url_lbl.hide()
             self._url_input.hide()
+        elif prov == "opencode":
+            self._key_lbl.setText("OPENCODE API KEY")
+            self._key_input.setPlaceholderText("sk-...")
+            self._key_input.setEchoMode(QLineEdit.EchoMode.Password)
+            self._key_input.show()
+            self._key_toggle.show()
+            self._key_link.setText(
+                '<a href="https://opencode.ai/zen" style="color: #ff80d5; text-decoration: underline;">Get your OpenCode key <span style="font-size:16px;">&rarr;</span></a>'
+            )
+            self._key_link.setOpenExternalLinks(True)
+            self._key_link.show()
+            self._url_lbl.hide()
+            self._url_input.hide()
+
+    def _init_model_picker(self, prov: str):
+        models = self._provider_models.get(prov, [])
+        has_list = prov in ("gemini", "openai") and len(models) > 0
+        if has_list:
+            self._model_combo.clear()
+            self._model_combo.addItems(models)
+            self._model_combo.setCurrentIndex(0)
+            self._model_combo.show()
+            self._model_input.hide()
+            self._model_lbl.show()
+        else:
+            self._model_combo.hide()
+            self._model_input.clear()
+            self._model_input.show()
+            self._model_lbl.show()
+
+    def _get_selected_model(self) -> str:
+        prov = {0: "opencode", 1: "ollama", 2: "gemini", 3: "openai"}.get(
+            self._provider_cb.currentIndex(), "gemini"
+        )
+        if prov in ("gemini", "openai"):
+            return self._model_combo.currentText().strip()
+        return self._model_input.text().strip()
+
+    def _filter_model_results(self, text: str):
+        text = text.strip().lower()
+        self._model_results.clear()
+        if not text:
+            self._model_results.setFixedHeight(0)
+            self._model_results.hide()
+            return
+        prov = {0: "opencode", 1: "ollama", 2: "gemini", 3: "openai"}.get(
+            self._provider_cb.currentIndex(), "gemini"
+        )
+        all_models = self._provider_models.get(prov, [])
+        matches = []
+        for mid in all_models:
+            display = self._model_display_names.get(mid, mid)
+            if text in mid.lower() or text in display.lower():
+                matches.append((mid, display))
+        if matches:
+            for mid, display in matches:
+                item = QListWidgetItem(f"{display}  ({mid})")
+                item.setData(Qt.ItemDataRole.UserRole, mid)
+                self._model_results.addItem(item)
+            h = min(len(matches), 6) * 40 + 12
+            self._model_results.setFixedHeight(h)
+            self._model_results.show()
+        else:
+            closest = self._find_closest_model(text, all_models)
+            no_item = QListWidgetItem("No search results")
+            no_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self._model_results.addItem(no_item)
+            if closest:
+                mid, display = closest
+                suggest_item = QListWidgetItem(f"Did you mean  {display}  ({mid})?")
+                suggest_item.setData(Qt.ItemDataRole.UserRole, mid)
+                self._model_results.addItem(suggest_item)
+            h = (2 if closest else 1) * 40 + 12
+            self._model_results.setFixedHeight(h)
+            self._model_results.show()
+
+    def _find_closest_model(self, text: str, all_models: list):
+        best = None
+        best_dist = len(text) + 10
+        for mid in all_models:
+            display = self._model_display_names.get(mid, mid).lower()
+            d = self._edit_distance(text, mid.lower())
+            dd = self._edit_distance(text, display)
+            dist = min(d, dd)
+            if dist < best_dist:
+                best_dist = dist
+                best = (mid, self._model_display_names.get(mid, mid))
+        if best_dist <= 8:
+            return best
+        return None
+
+    @staticmethod
+    def _edit_distance(a: str, b: str) -> int:
+        m, n = len(a), len(b)
+        dp = list(range(n + 1))
+        for i in range(1, m + 1):
+            prev = dp[0]
+            dp[0] = i
+            for j in range(1, n + 1):
+                temp = dp[j]
+                if a[i - 1] == b[j - 1]:
+                    dp[j] = prev
+                else:
+                    dp[j] = 1 + min(prev, dp[j], dp[j - 1])
+                prev = temp
+        return dp[n]
+
+    def _on_model_result_click(self, item: QListWidgetItem):
+        mid = item.data(Qt.ItemDataRole.UserRole)
+        self._model_input.setText(mid)
+        self._model_results.clear()
+        self._model_results.setFixedHeight(0)
+        self._model_results.hide()
 
     def _on_key_toggle(self, checked: bool):
         if checked:
@@ -1576,12 +2116,20 @@ class SetupOverlay(QWidget):
         self._mic_test_btn.setEnabled(True)
 
     def _submit(self):
-        providers = {0: "gemini", 1: "openai", 2: "ollama"}
+        providers = {0: "opencode", 1: "ollama", 2: "gemini", 3: "openai"}
         prov = providers.get(self._provider_cb.currentIndex(), "gemini")
         key = self._key_input.text().strip()
         url = self._url_input.text().strip()
         if prov == "ollama":
             base_url = key or url or "http://localhost:11434/v1"
+        elif prov == "opencode":
+            if not key:
+                self._key_input.setStyleSheet(
+                    self._key_input.styleSheet() +
+                    f" QLineEdit {{ border: 1px solid {C.RED}; }}"
+                )
+                return
+            base_url = "https://opencode.ai/zen/v1/chat/completions"
         else:
             if not key:
                 self._key_input.setStyleSheet(
@@ -1591,6 +2139,7 @@ class SetupOverlay(QWidget):
                 return
             base_url = url or ""
         self.done.emit({"provider": prov, "api_key": key, "base_url": base_url,
+                        "model": self._get_selected_model(),
                         "os_name": self._sel_os, "remember": self._remember_cb.isChecked()})
 
     def apply_scale(self, s: float):
@@ -2111,6 +2660,10 @@ class MainWindow(QMainWindow):
         splitter.splitterMoved.connect(self._pos_theme_switch)
 
         root.addWidget(splitter, stretch=1)
+
+        self._dynamic_panel = self._build_dynamic_panel()
+        root.addWidget(self._dynamic_panel)
+
         root.addWidget(self._build_footer())
 
         self._clock_tmr = QTimer(self)
@@ -2888,6 +3441,64 @@ class MainWindow(QMainWindow):
         row.addWidget(send)
         return row
 
+    def _build_dynamic_panel(self) -> QWidget:
+        """Build the dynamic content panel for high-density web results."""
+        w = QWidget()
+        w.setMaximumHeight(150)
+        w.setStyleSheet(f"""
+            QWidget {{
+                background: {C.PANEL};
+                border: 1px solid {C.BORDER};
+                border-radius: 5px;
+                margin: 2px 5px;
+            }}
+        """)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 4, 8, 4)
+        lay.setSpacing(2)
+
+        header = QLabel("DYNAMIC CONTENT")
+        header.setFont(QFont("Courier New", 8, QFont.Weight.Bold))
+        header.setStyleSheet(f"color: {C.TEXT_DIM}; border: none;")
+        lay.addWidget(header)
+
+        self._dynamic_content = QTextEdit()
+        self._dynamic_content.setReadOnly(True)
+        self._dynamic_content.setMaximumHeight(110)
+        self._dynamic_content.setFont(QFont("Courier New", 10))
+        self._dynamic_content.setStyleSheet(f"""
+            QTextEdit {{
+                background: {C.DARK};
+                color: {C.TEXT};
+                border: 1px solid {C.BORDER};
+                border-radius: 3px;
+                padding: 4px;
+            }}
+        """)
+        lay.addWidget(self._dynamic_content)
+
+        self._dynamic_panel = w
+        w.hide()
+        return w
+
+    def update_dynamic_content(self, content: str, title: str = ""):
+        """Update the dynamic content panel with web results."""
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%H:%M:%S")
+
+        if title:
+            header = f"[{timestamp}] {title}\n"
+        else:
+            header = f"[{timestamp}]\n"
+
+        self._dynamic_content.setPlainText(header + content)
+        self._dynamic_panel.show()
+
+    def clear_dynamic_content(self):
+        """Clear and hide the dynamic content panel."""
+        self._dynamic_content.clear()
+        self._dynamic_panel.hide()
+
     def _build_footer(self) -> QWidget:
         w = QWidget()
         w.setFixedHeight(28)
@@ -3069,9 +3680,8 @@ class MainWindow(QMainWindow):
             f"Respond with ONLY the title, nothing else.\n\n{conv}"
         )
         try:
-            from providers.gemini import GeminiProvider
-            provider = GeminiProvider()
-            resp = provider.generate(model="gemini-2.5-flash", messages=[{"role": "user", "content": prompt}])
+            from providers import call_llm
+            resp = call_llm(messages=[{"role": "user", "content": prompt}])
             raw = (resp.get("content") or "").strip()
             title = raw.strip("\"'")
             while title.endswith((".", "\u2026")):
@@ -3322,6 +3932,8 @@ class MainWindow(QMainWindow):
                 return bool(os.getenv("GEMINI_API_KEY")) and bool(os.getenv("OS_SYSTEM"))
             elif prov == "openai":
                 return bool(os.getenv("OPENAI_API_KEY")) and bool(os.getenv("OS_SYSTEM"))
+            elif prov == "opencode":
+                return bool(os.getenv("OPENCODE_API_KEY")) and bool(os.getenv("OS_SYSTEM"))
             elif prov == "ollama":
                 return bool(os.getenv("OS_SYSTEM"))
         except Exception:
@@ -3346,27 +3958,36 @@ class MainWindow(QMainWindow):
         remember = cfg.get("remember", True)
         api_key = cfg.get("api_key", "")
         base_url = cfg.get("base_url", "")
+        model = cfg.get("model", "")
 
         os.environ["LLM_PROVIDER"] = prov
         os.environ["OS_SYSTEM"] = os_name
+        if model:
+            os.environ["LLM_MODEL"] = model
         if prov == "gemini":
             os.environ["GEMINI_API_KEY"] = api_key
         elif prov == "openai":
             os.environ["OPENAI_API_KEY"] = api_key
             if base_url:
                 os.environ["OPENAI_BASE_URL"] = base_url
+        elif prov == "opencode":
+            os.environ["OPENCODE_API_KEY"] = api_key
         elif prov == "ollama":
             os.environ["OLLAMA_BASE_URL"] = base_url
 
         if remember:
             API_FILE.parent.mkdir(parents=True, exist_ok=True)
             lines = [f"LLM_PROVIDER={prov}", f"OS_SYSTEM={os_name}"]
+            if model:
+                lines.append(f"LLM_MODEL={model}")
             if prov == "gemini":
                 lines.append(f"GEMINI_API_KEY={api_key}")
             elif prov == "openai":
                 lines.append(f"OPENAI_API_KEY={api_key}")
                 if base_url:
                     lines.append(f"OPENAI_BASE_URL={base_url}")
+            elif prov == "opencode":
+                lines.append(f"OPENCODE_API_KEY={api_key}")
             elif prov == "ollama":
                 lines.append(f"OLLAMA_BASE_URL={base_url}")
             with open(API_FILE, "w", encoding="utf-8") as f:

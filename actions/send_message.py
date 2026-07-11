@@ -1,14 +1,11 @@
 import os
-import json
 import subprocess
-import sys
 import time
-from pathlib import Path
 
 try:
     import pyautogui
     pyautogui.FAILSAFE = True
-    pyautogui.PAUSE    = 0.06
+    pyautogui.PAUSE = 0.06
     _PYAUTOGUI = True
 except Exception:
     _PYAUTOGUI = False
@@ -18,6 +15,7 @@ try:
     _PYPERCLIP = True
 except ImportError:
     _PYPERCLIP = False
+
 
 def _get_os() -> str:
     try:
@@ -54,19 +52,20 @@ def _clear_and_paste(text: str) -> None:
     time.sleep(0.1)
     _paste_text(text)
 
+
 def _open_app(app_name: str) -> bool:
     _require_pyautogui()
 
     try:
-            pyautogui.press("win")
-            time.sleep(0.5)
-            _paste_text(app_name)
-            time.sleep(0.6)
-            pyautogui.press("enter")
-            time.sleep(2.5)
-            return True
+        pyautogui.press("win")
+        time.sleep(0.5)
+        _paste_text(app_name)
+        time.sleep(0.6)
+        pyautogui.press("enter")
+        time.sleep(2.5)
+        return True
     except Exception as e:
-        print(f"[SendMessage] [WARN] Could not open {app_name}: {e}")
+        print(f"[SendMessage] Could not open {app_name}: {e}")
 
     return False
 
@@ -75,11 +74,12 @@ def _open_browser_url(url: str) -> bool:
     import webbrowser
     try:
         webbrowser.open(url)
-        time.sleep(4.0) 
+        time.sleep(4.0)
         return True
     except Exception as e:
-        print(f"[SendMessage] [WARN] Could not open browser: {e}")
+        print(f"[SendMessage] Could not open browser: {e}")
         return False
+
 
 def _search_in_app(query: str) -> None:
     _require_pyautogui()
@@ -87,6 +87,7 @@ def _search_in_app(query: str) -> None:
     time.sleep(0.5)
     _clear_and_paste(query)
     time.sleep(1.0)
+
 
 def _desktop_send(app_name: str, receiver: str, message: str) -> str:
     if not _open_app(app_name):
@@ -103,11 +104,14 @@ def _desktop_send(app_name: str, receiver: str, message: str) -> str:
     time.sleep(0.3)
     return f"Message sent to {receiver} via {app_name}."
 
+
 def _send_whatsapp(receiver: str, message: str) -> str:
     return _desktop_send("WhatsApp", receiver, message)
 
+
 def _send_telegram(receiver: str, message: str) -> str:
     return _desktop_send("Telegram", receiver, message)
+
 
 def _send_signal(receiver: str, message: str) -> str:
     return _desktop_send("Signal", receiver, message)
@@ -128,7 +132,7 @@ def _send_instagram(receiver: str, message: str) -> str:
 
     pyautogui.press("down")
     time.sleep(0.3)
-    pyautogui.press("enter")   
+    pyautogui.press("enter")
     time.sleep(0.4)
 
     for _ in range(4):
@@ -151,7 +155,6 @@ def _send_messenger(receiver: str, message: str) -> str:
     if not _open_browser_url("https://www.messenger.com/"):
         return "Could not open Messenger in browser."
 
-
     _search_in_app(receiver)
     time.sleep(0.5)
     pyautogui.press("down")
@@ -165,6 +168,7 @@ def _send_messenger(receiver: str, message: str) -> str:
     time.sleep(0.3)
 
     return f"Message sent to {receiver} via Messenger."
+
 
 _PLATFORM_MAP = [
     ({"whatsapp", "wp", "wapp"},              _send_whatsapp),
@@ -186,35 +190,28 @@ def _resolve_platform(platform_str: str):
 
 def send_message(
     parameters: dict,
-    response=None,
-    player=None,
-    session_memory=None,
+    speak=None,
 ) -> str:
-    params       = parameters or {}
-    receiver     = params.get("receiver", "").strip()
+    params = parameters or {}
+    receiver = params.get("receiver", "").strip()
     message_text = params.get("message_text", "").strip()
-    platform     = params.get("platform", "whatsapp").strip()
+    platform = params.get("platform", "whatsapp").strip()
 
     if not receiver:
         return "Please specify a recipient."
     if not message_text:
         return "Please specify the message content."
     if not _PYAUTOGUI:
-        return "PyAutoGUI is not installed  --  cannot control the desktop."
+        return "PyAutoGUI is not installed -- cannot control the desktop."
 
     preview = message_text[:50] + ("..." if len(message_text) > 50 else "")
-    print(f"[SendMessage] {platform}  ->  {receiver}: {preview}")
-    if player:
-        player.write_log(f"[Message] {platform}  ->  {receiver}")
+    print(f"[SendMessage] {platform} -> {receiver}: {preview}")
 
     try:
         handler = _resolve_platform(platform)
-        result  = handler(receiver, message_text)
+        result = handler(receiver, message_text)
     except Exception as e:
         result = f"Could not send message: {e}"
 
-    print(f"[SendMessage] {'[OK]' if 'sent' in result.lower() else ''} {result}")
-    if player:
-        player.write_log(f"[Message] {result}")
-
+    print(f"[SendMessage] {result}")
     return result

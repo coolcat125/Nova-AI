@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import platform
@@ -38,7 +39,7 @@ def _platform_key() -> str:
     return "linux"
 
 def check_for_update() -> dict:
-    result = {"update_available": False, "version": __version__, "error": "", "download_url": ""}
+    result = {"update_available": False, "version": __version__, "error": "", "download_url": "", "checksum": ""}
     try:
         print("[Updater] Checking for updates...")
         r = requests.get(UPDATE_URL, timeout=TIMEOUT)
@@ -48,10 +49,12 @@ def check_for_update() -> dict:
         plat = data.get(pkey, {})
         remote_ver = plat.get("version", "")
         remote_url = plat.get("download_url", "")
+        remote_checksum = plat.get("checksum", "")
         if remote_ver and _ver_tuple(remote_ver) > _ver_tuple(__version__):
             result["update_available"] = True
             result["version"] = remote_ver
             result["download_url"] = remote_url
+            result["checksum"] = remote_checksum
             print(f"[Updater] Update found: {__version__} -> {remote_ver}")
         else:
             print(f"[Updater] Already up-to-date ({__version__})")
@@ -72,7 +75,15 @@ def check_for_update_async(callback=None) -> None:
     threading.Thread(target=_run, daemon=True).start()
 
 
-def download_to_temp(url: str) -> str:
+def _sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def download_to_temp(url: str, expected_checksum: str = "") -> str:
     """Download a file to a temp dir and return the local path. Returns '' on failure."""
     try:
         print(f"[Updater] Downloading {url}")
@@ -82,6 +93,15 @@ def download_to_temp(url: str) -> str:
         fname = "Nova.dmg" if _IS_MAC else "Nova.exe"
         path = tmp_dir / fname
         path.write_bytes(r.content)
+        
+        if expected_checksum:
+            actual = _sha256_file(str(path))
+            if actual.lower() != expected_checksum.lower():
+                print(f"[Updater] Checksum mismatch: expected {expected_checksum}, got {actual}")
+                path.unlink()
+                return ""
+            print(f"[Updater] Checksum verified")
+        
         print(f"[Updater] Downloaded {path.stat().st_size // 1024 // 1024} MB")
         return str(path)
     except Exception as e:
