@@ -1370,6 +1370,7 @@ class NovaLive:
                     model=LIVE_MODEL, config=config
                 ) as session:
                     self.session = session
+                    self._loop = asyncio.get_running_loop()
                     self.audio_in_queue = asyncio.Queue()
                     self.out_queue = asyncio.Queue(maxsize=10)
                     self._turn_done_event = asyncio.Event()
