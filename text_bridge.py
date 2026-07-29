@@ -14,13 +14,7 @@ from supabase import create_client, Client
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise RuntimeError(
-        "SUPABASE_URL and SUPABASE_KEY environment variables are required. "
-        "Set them in your .env file or system environment."
-    )
-
-REALTIME_URL = SUPABASE_URL.replace("https://", "wss://") + "/realtime/v1/websocket"
+REALTIME_URL = (SUPABASE_URL.replace("https://", "wss://") + "/realtime/v1/websocket") if SUPABASE_URL else ""
 
 
 def _generate_code() -> str:
@@ -70,6 +64,8 @@ class TextBridge:
                 ),
                 self._gemini_loop
             )
+        if self._nova_client:
+            self._nova_client._bridge_turn = False
 
     def set_provider(self, system_prompt: str):
         """Configure bridge for non-Gemini providers (uses call_llm)."""
@@ -77,8 +73,11 @@ class TextBridge:
         self._log("Connected to Nova (provider mode).")
         pending = list(self._pending_messages)
         self._pending_messages.clear()
-        for msg in pending:
-            asyncio.create_task(self._process_text(msg))
+        if self._loop and self._loop.is_running():
+            for msg in pending:
+                asyncio.run_coroutine_threadsafe(self._process_text(msg), self._loop)
+        elif pending:
+            self._log(f"Warning: {len(pending)} pending messages dropped (no event loop)")
 
     def start(self):
         def _run_loop():

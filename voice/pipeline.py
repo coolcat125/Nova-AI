@@ -52,6 +52,7 @@ class VoicePipeline:
         self.execute_tool_fn = execute_tool_fn
         self.ui = ui
         self.conversation: list[dict] = []
+        self._max_history = 20
         self._speaking = False
         self._speaking_lock = threading.Lock()
         self._audio_out_queue: asyncio.Queue = asyncio.Queue(maxsize=50)
@@ -69,9 +70,8 @@ class VoicePipeline:
             self._speaking = val
 
     def _get_model_name(self) -> str:
-        from providers import _DEFAULT_MODELS, _current_provider_name
-        prov = _current_provider_name()
-        return os.environ.get("LLM_MODEL", "") or _DEFAULT_MODELS.get(prov, "gemini-2.5-flash")
+        from providers import get_current_model
+        return os.environ.get("LLM_MODEL", "") or get_current_model()
 
     def _build_system_prompt(self) -> str:
         from datetime import datetime
@@ -124,6 +124,9 @@ class VoicePipeline:
                     self.ui.finish_nova()
 
                 self.conversation.append({"role": "assistant", "content": response_text})
+
+            if len(self.conversation) > self._max_history:
+                self.conversation = self.conversation[-self._max_history:]
 
             return response_text or ""
         finally:

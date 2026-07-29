@@ -41,7 +41,17 @@ def _paste_text(text: str) -> None:
         pyautogui.hotkey("ctrl", "v")
         time.sleep(0.1)
     else:
-        pyautogui.write(text, interval=0.03)
+        import ctypes
+        if sys.platform == "win32":
+            ctypes.windll.user32.OpenClipboard(0)
+            ctypes.windll.user32.EmptyClipboard()
+            ctypes.windll.user32.SetClipboardData(13, text.encode("utf-16-le"))
+            ctypes.windll.user32.CloseClipboard()
+            time.sleep(0.15)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.1)
+        else:
+            pyautogui.write(text, interval=0.03)
 
 
 def _clear_and_paste(text: str) -> None:

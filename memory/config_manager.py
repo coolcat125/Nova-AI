@@ -64,6 +64,8 @@ def is_configured() -> bool:
         return bool(config.get("openai_api_key"))
     elif prov == "ollama":
         return True
+    elif prov == "opencode":
+        return bool(os.environ.get("OPENCODE_API_KEY", ""))
     return False
 
 
@@ -96,7 +98,7 @@ def save_from_env() -> dict:
 
 
 def set_provider(provider: str) -> dict:
-    valid = {"gemini", "openai", "ollama"}
+    valid = {"gemini", "openai", "ollama", "opencode"}
     if provider not in valid:
         raise ValueError(f"Invalid provider: {provider}. Use: {valid}")
     config = load_config()

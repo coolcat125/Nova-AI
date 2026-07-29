@@ -4,6 +4,7 @@ import re
 import time
 import uuid
 from pathlib import Path
+from threading import Lock
 from typing import Optional
 
 from config.paths import get_data_dir
@@ -38,6 +39,7 @@ class SessionManager:
     def __init__(self):
         SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
         self._current_id: Optional[str] = None
+        self._lock = Lock()
 
     # -- index helpers --
 
@@ -65,26 +67,28 @@ class SessionManager:
             "message_count": 0,
         }
         self._write_session_file(sid, {"messages": []})
-        self._current_id = sid
-        idx = self._read_index()
-        idx["sessions"].insert(0, entry)
-        self._write_index(idx)
+        with self._lock:
+            self._current_id = sid
+            idx = self._read_index()
+            idx["sessions"].insert(0, entry)
+            self._write_index(idx)
         return sid
 
     def save_messages(self, sid: str, messages: list, title: Optional[str] = None):
         self._write_session_file(sid, {"messages": messages})
         now = _now_iso()
-        idx = self._read_index()
-        for e in idx["sessions"]:
-            if e["id"] == sid:
-                e["updated_at"] = now
-                e["message_count"] = len(messages)
-                if title is not None:
-                    e["title"] = title
-                elif messages and e.get("title", "").startswith("New session"):
-                    e["title"] = _title_from_messages(messages)
-                break
-        self._write_index(idx)
+        with self._lock:
+            idx = self._read_index()
+            for e in idx["sessions"]:
+                if e["id"] == sid:
+                    e["updated_at"] = now
+                    e["message_count"] = len(messages)
+                    if title is not None:
+                        e["title"] = title
+                    elif messages and e.get("title", "").startswith("New session"):
+                        e["title"] = _title_from_messages(messages)
+                    break
+            self._write_index(idx)
 
     def load_messages(self, sid: str) -> list:
         if not _is_valid_sid(sid):
@@ -104,22 +108,25 @@ class SessionManager:
         path = SESSIONS_DIR / f"{sid}.json"
         if path.exists():
             path.unlink()
-        idx = self._read_index()
-        idx["sessions"] = [e for e in idx["sessions"] if e["id"] != sid]
-        self._write_index(idx)
+        with self._lock:
+            idx = self._read_index()
+            idx["sessions"] = [e for e in idx["sessions"] if e["id"] != sid]
+            self._write_index(idx)
         if self._current_id == sid:
             self._current_id = None
 
     def list_sessions(self) -> list[dict]:
-        return self._read_index().get("sessions", [])
+        with self._lock:
+            return self._read_index().get("sessions", [])
 
     def rename_session(self, sid: str, title: str):
-        idx = self._read_index()
-        for e in idx["sessions"]:
-            if e["id"] == sid:
-                e["title"] = title
-                break
-        self._write_index(idx)
+        with self._lock:
+            idx = self._read_index()
+            for e in idx["sessions"]:
+                if e["id"] == sid:
+                    e["title"] = title
+                    break
+            self._write_index(idx)
 
     # -- current session --
 

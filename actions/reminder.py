@@ -138,6 +138,7 @@ def _schedule_windows(target_dt: datetime, task_name: str,
         python_exe = pythonw
 
     xml_path = _scripts_dir() / f"{task_name}.xml"
+    from xml.sax.saxutils import escape as xml_escape
     xml_content = (
         '<?xml version="1.0" encoding="UTF-16"?>\n'
         '<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">\n'
@@ -147,8 +148,8 @@ def _schedule_windows(target_dt: datetime, task_name: str,
         '    <Enabled>true</Enabled>\n'
         '  </TimeTrigger></Triggers>\n'
         '  <Actions><Exec>\n'
-        f'    <Command>{python_exe}</Command>\n'
-        f'    <Arguments>"{script_path}"</Arguments>\n'
+        f'    <Command>{xml_escape(str(python_exe))}</Command>\n'
+        f'    <Arguments>"{xml_escape(str(script_path))}"</Arguments>\n'
         '  </Exec></Actions>\n'
         '  <Settings>\n'
         '    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>\n'

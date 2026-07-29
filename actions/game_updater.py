@@ -900,7 +900,7 @@ def _get_schedule_status() -> str:
 def game_updater(parameters: dict, speak=None) -> str:
     p         = parameters or {}
     action    = p.get("action",    "update").lower().strip()
-    platform  = p.get("platform",  "both").lower().strip()
+    target_platform = p.get("platform",  "both").lower().strip()
     game_name = (p.get("game_name") or "").strip() or None
     app_id    = (p.get("app_id")    or "").strip() or None
     hour      = int(p.get("hour",   3))
@@ -914,7 +914,7 @@ def game_updater(parameters: dict, speak=None) -> str:
     if action == "schedule_status": return _get_schedule_status()
 
     if action == "list":
-        if platform in ("steam", "both"):
+        if target_platform in ("steam", "both"):
             steam_path = _find_steam_path()
             if steam_path:
                 games = _get_steam_games(steam_path)
@@ -926,7 +926,7 @@ def game_updater(parameters: dict, speak=None) -> str:
                     results.append("Steam: No games found.")
             else:
                 results.append("Steam: Not installed.")
-        if platform in ("epic", "both"):
+        if target_platform in ("epic", "both"):
             games = _get_epic_games()
             if games:
                 names  = ", ".join(g["name"] for g in games[:8])
@@ -937,17 +937,17 @@ def game_updater(parameters: dict, speak=None) -> str:
         return " | ".join(results) or "No platforms found."
 
     if action == "download_status":
-        if platform in ("steam", "both"):
+        if target_platform in ("steam", "both"):
             steam_path = _find_steam_path()
             results.append(
                 _get_download_status(steam_path) if steam_path else "Steam: Not installed."
             )
-        if platform in ("epic", "both"):
+        if target_platform in ("epic", "both"):
             results.append("Epic download status not available directly.")
         return " ".join(results)
 
     if action in ("install", "update"):
-        if platform in ("steam", "both"):
+        if target_platform in ("steam", "both"):
             steam_path = _find_steam_path()
             if not steam_path:
                 results.append("Steam: Not installed.")
@@ -989,7 +989,7 @@ def game_updater(parameters: dict, speak=None) -> str:
                     ).start()
                     results.append("Auto-shutdown enabled.")
 
-        if platform in ("epic", "both"):
+        if target_platform in ("epic", "both"):
             epic_exe = _find_epic_exe()
             if epic_exe:
                 results.append(

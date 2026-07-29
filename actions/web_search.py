@@ -56,9 +56,10 @@ def _gemini_search(query: str) -> str:
     )
 
     text = ""
-    for part in response.candidates[0].content.parts:
-        if hasattr(part, "text") and part.text:
-            text += part.text
+    if response.candidates and response.candidates[0].content:
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, "text") and part.text:
+                text += part.text
 
     text = text.strip()
     if not text:

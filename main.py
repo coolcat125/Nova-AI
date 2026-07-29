@@ -32,7 +32,7 @@ from update import check_for_update_async
 from actions.file_processor import file_processor
 from actions.flight_finder import flight_finder
 from actions.open_app import open_app
-from actions.weather_report import weather_action
+from actions.weather_report import weather_report
 from actions.send_message import send_message
 from actions.reminder import reminder
 from actions.computer_settings import computer_settings
@@ -582,7 +582,7 @@ def _execute_tool_standalone(name: str, args: dict, speak_fn=None) -> str:
             return r or f"Opened {args.get('app_name')}."
 
         if name == "weather_report":
-            r = weather_action(parameters=args)
+            r = weather_report(parameters=args)
             return r or "Weather delivered."
 
         if name == "browser_control":
@@ -941,7 +941,7 @@ class NovaLive:
 
             elif name == "weather_report":
                 r = await loop.run_in_executor(
-                    None, lambda: weather_action(parameters=args)
+                    None, lambda: weather_report(parameters=args)
                 )
                 result = r or "Weather delivered."
 
@@ -1074,7 +1074,7 @@ class NovaLive:
         except Exception as e:
             result = f"Tool '{name}' failed: {e}"
             traceback.print_exc()
-            self.speak_error(name, e)
+            self.speak_error(name, result)
 
         summary = str(result)[:120].replace("\n", " ").replace("\r", "")
         self.ui.write_log(f"[OK] {name}: {summary}")
@@ -1325,7 +1325,7 @@ class NovaLive:
             ui=self.ui,
         )
         self.pipeline = pipeline
-        self._loop = asyncio.get_event_loop()
+        self._loop = asyncio.new_event_loop()
 
         self.ui.set_state("LISTENING")
         self.ui.write_log(f"SYS: Nova {__version__} online ({provider}).")
@@ -1370,7 +1370,6 @@ class NovaLive:
                     model=LIVE_MODEL, config=config
                 ) as session:
                     self.session = session
-                    self._loop = asyncio.get_event_loop()
                     self.audio_in_queue = asyncio.Queue()
                     self.out_queue = asyncio.Queue(maxsize=10)
                     self._turn_done_event = asyncio.Event()

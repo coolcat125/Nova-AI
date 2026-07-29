@@ -21,8 +21,8 @@ BASE_DIR        = _get_base_dir()
 
 
 def _get_api_key() -> str:
-    from providers import get_provider_api_key
-    return get_provider_api_key()
+    import os
+    return os.environ.get("GEMINI_API_KEY", "")
 
 _MONTH_MAP: dict[str, int] = {
 
@@ -298,6 +298,10 @@ def flight_finder(parameters: dict, speak=None) -> str:
 
     origin      = params.get("origin",      "").strip()
     destination = params.get("destination", "").strip()
+
+    import re as _re
+    origin = _re.sub(r'[^a-zA-Z0-9\s\-]', '', origin)
+    destination = _re.sub(r'[^a-zA-Z0-9\s\-]', '', destination)
     date_raw    = params.get("date",        "").strip()
     return_raw  = (params.get("return_date") or "").strip()
     passengers  = max(1, int(params.get("passengers", 1)))

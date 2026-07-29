@@ -1,4 +1,4 @@
-﻿pydantic-core>=2.27.0
+﻿pydantic-core==2.46.3
 audioop-lts; python_version >= '3.13'
 comtypes; sys_platform == 'win32'
 duckduckgo-search

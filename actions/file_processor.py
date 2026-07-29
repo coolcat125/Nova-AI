@@ -293,9 +293,9 @@ def _process_text_doc(path: Path, file_type: str, action: str,
     }
 
     if action not in prompt_map:
-
+        original_action = action
         action  = "custom"
-        instruction = action
+        instruction = original_action
 
     try:
         client = _gemini_client()
@@ -465,7 +465,7 @@ def _process_code(path: Path, action: str, params: dict, speak=None) -> str:
         if ext == "py":
             try:
                 result = subprocess.run(
-                    ["python", str(path)],
+                    [sys.executable, str(path)],
                     capture_output=True, text=True, timeout=30
                 )
                 out = result.stdout or result.stderr

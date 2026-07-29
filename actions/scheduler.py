@@ -14,19 +14,22 @@ from config.paths import get_data_dir
 
 TASKS_FILE: Path = get_data_dir() / "memory" / "scheduled_tasks.json"
 POLL_INTERVAL: float = 30.0
+_tasks_lock: threading.Lock = threading.Lock()
 
 
 def _load_tasks() -> list[dict]:
-    try:
-        data = TASKS_FILE.read_text(encoding="utf-8")
-        return json.loads(data)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+    with _tasks_lock:
+        try:
+            data = TASKS_FILE.read_text(encoding="utf-8")
+            return json.loads(data)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
 
 
 def _save_tasks(tasks: list[dict]) -> None:
-    TASKS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    TASKS_FILE.write_text(json.dumps(tasks, indent=2), encoding="utf-8")
+    with _tasks_lock:
+        TASKS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        TASKS_FILE.write_text(json.dumps(tasks, indent=2), encoding="utf-8")
 
 
 def _should_run(task: dict) -> bool:

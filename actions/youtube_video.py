@@ -39,8 +39,9 @@ def _get_api_key() -> str:
 
 
 def _open_url(url: str) -> None:
+    import webbrowser
     try:
-        subprocess.Popen(["cmd", "/c", "start", "", url], shell=False)
+        webbrowser.open(url)
     except Exception as e:
         print(f"[YouTube] open_url failed: {e}")
 

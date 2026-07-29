@@ -41,15 +41,14 @@ def _ensure_voice():
     return voice_dir
 
 
-def synthesize(text: str, sample_rate: int = 22050) -> bytes:
+def synthesize(text: str) -> bytes:
     """Convert text to raw PCM int16 audio bytes.
 
     Args:
         text: Text to speak.
-        sample_rate: Output sample rate (default 22050).
 
     Returns:
-        Raw PCM int16 audio bytes.
+        Raw PCM int16 audio bytes at 22050Hz.
     """
     from piper import PiperVoice
 

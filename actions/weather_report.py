@@ -2,7 +2,7 @@ import webbrowser
 from urllib.parse import quote_plus
 
 
-def weather_action(
+def weather_report(
     parameters: dict,
     speak=None,
 ) -> str:
