@@ -17,6 +17,7 @@ from google import genai
 from google.genai import types
 
 from config.paths import get_data_dir
+from config import _ensure_env
 from providers import call_llm
 from ui import NovaUI
 from memory.memory_manager import (
@@ -56,6 +57,7 @@ from actions.web_search import _gemini_search
 _env_path = get_data_dir() / ".env"
 
 def _load_env():
+    _ensure_env()
     if _env_path.exists():
         for _ in range(2):
             try:
