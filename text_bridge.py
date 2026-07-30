@@ -6,7 +6,6 @@ import secrets
 import string
 import threading
 import time
-from pathlib import Path
 from typing import Optional,  Any, Callable
 
 import websockets
@@ -17,13 +16,11 @@ def _get_env(key: str) -> str:
     val = os.environ.get(key, "")
     if val:
         return val
-    # Fallback: load defaults.env from project root
-    defaults = Path(__file__).parent / "defaults.env"
-    if defaults.exists():
-        for line in defaults.read_text(encoding="utf-8").splitlines():
-            if "=" in line and not line.startswith("#"):
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
+    try:
+        from config import _ensure_env
+        _ensure_env()
+    except Exception:
+        pass
     return os.environ.get(key, "")
 
 
