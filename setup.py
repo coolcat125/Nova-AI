@@ -64,14 +64,14 @@ def _install_playwright():
 
 
 def _read_env() -> dict[str, str]:
-    """Read existing .env file into a dict."""
-    env_path = Path(".env")
+    """Read defaults.env as base, then override with .env if it exists."""
     env_vars: dict[str, str] = {}
-    if env_path.exists():
-        for line in env_path.read_text().strip().splitlines():
-            if "=" in line:
-                k, v = line.split("=", 1)
-                env_vars[k.strip()] = v.strip()
+    for path in [Path("defaults.env"), Path(".env")]:
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").strip().splitlines():
+                if "=" in line and not line.startswith("#"):
+                    k, v = line.split("=", 1)
+                    env_vars[k.strip()] = v.strip()
     return env_vars
 
 
