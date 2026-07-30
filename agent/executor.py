@@ -187,7 +187,7 @@ class AgentExecutor:
             steps = plan.get("steps", [])
 
             if not steps:
-                msg = "I couldn't create a valid plan for this task, sir."
+                msg = "I couldn't create a valid plan for this task."
                 if speak: speak(msg)
                 return msg
 
@@ -197,7 +197,7 @@ class AgentExecutor:
 
             for step in steps:
                 if cancel_flag and cancel_flag.is_set():
-                    if speak: speak("Task cancelled, sir.")
+                    if speak: speak("Task cancelled.")
                     return "Task cancelled."
 
                 step_num = step.get("step", "?")
@@ -246,7 +246,7 @@ class AgentExecutor:
                             break
 
                         elif decision == ErrorDecision.ABORT:
-                            msg = f"Task aborted, sir. {recovery.get('reason', '')}"
+                            msg = f"Task aborted. {recovery.get('reason', '')}"
                             if speak: speak(msg)
                             return msg
 
@@ -255,7 +255,7 @@ class AgentExecutor:
                             if fix_suggestion and tool != "generated_code":
                                 try:
                                     fixed_step = generate_fix(step, error_msg, fix_suggestion)
-                                    if speak: speak("Trying an alternative approach, sir.")
+                                    if speak: speak("Trying an alternative approach.")
                                     res = _call_tool(
                                         fixed_step["tool"],
                                         fixed_step["parameters"],
@@ -285,17 +285,17 @@ class AgentExecutor:
                 return self._summarize(goal, completed_steps, speak)
 
             if replan_attempts >= self.MAX_REPLAN_ATTEMPTS:
-                msg = f"Task failed after {replan_attempts} replan attempts, sir."
+                msg = f"Task failed after {replan_attempts} replan attempts."
                 if speak: speak(msg)
                 return msg
 
-            if speak: speak("Adjusting my approach, sir.")
+            if speak: speak("Adjusting my approach.")
 
             replan_attempts += 1
             plan = replan(goal, completed_steps, failed_step, failed_error)
 
     def _summarize(self, goal: str, completed_steps: list, speak: Optional[Callable]) -> str:
-        fallback = f"All done, sir. Completed {len(completed_steps)} steps for: {goal[:60]}."
+        fallback = f"All done. Completed {len(completed_steps)} steps for: {goal[:60]}."
         try:
             from providers import call_llm
             steps_str = "\n".join(f"- {s.get('description', '')}" for s in completed_steps)
@@ -303,7 +303,7 @@ class AgentExecutor:
                 f'User goal: "{goal}"\n'
                 f"Completed steps:\n{steps_str}\n\n"
                 "Write a single natural sentence summarizing what was accomplished. "
-                "Address the user as 'sir'. Be direct and positive."
+                "Be direct and positive."
             )
             from actions.quota_tracker import increment as increment_quota; increment_quota()
             resp  = call_llm(contents=prompt)

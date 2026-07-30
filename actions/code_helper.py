@@ -160,21 +160,21 @@ def _image_to_base64(path: Path) -> str:
 def _detect_intent(description: str, file_path: str, code: str) -> str:
     desc = (description or "").lower()
 
-    screen_kw = ["ekrandaki", "screen", "ekranda", "bu hatayi", "why am i getting",
-                 "neden hata", "what's wrong", "ne yanlis", "screenshot", "goruntu"]
+    screen_kw = ["screen", "on screen", "this error", "why am i getting",
+                 "what's wrong", "what wrong", "screenshot", "visual"]
     if any(k in desc for k in screen_kw):
         return "screen_debug"
 
-    optimize_kw = ["optimize", "refactor", "clean up", "improve", "temizle",
-                   "iyilestir", "daha iyi", "make it better", "hizlandir"]
+    optimize_kw = ["optimize", "refactor", "clean up", "improve", "better",
+                   "make it better", "speed up"]
     if any(k in desc for k in optimize_kw) and (code or file_path):
         return "optimize"
 
     if file_path:
         p = Path(file_path)
         edit_kw  = ["edit", "update", "modify", "change", "add", "remove",
-                    "refactor", "fix", "rename", "replace", "duzenle", "degistir"]
-        run_kw   = ["run", "execute", "launch", "start", "calistir"]
+                    "refactor", "fix", "rename", "replace"]
+        run_kw   = ["run", "execute", "launch", "start"]
         build_kw = ["build", "make it work", "try", "attempt"]
 
         if p.exists() and any(k in desc for k in edit_kw):
@@ -186,7 +186,7 @@ def _detect_intent(description: str, file_path: str, code: str) -> str:
         if p.exists():
             return "explain"
 
-    explain_kw = ["explain", "what does", "describe", "analyze", "acikla", "ne yapiyor"]
+    explain_kw = ["explain", "what does", "what doing", "describe", "analyze"]
     if any(k in desc for k in explain_kw) and (code or file_path):
         return "explain"
 
@@ -282,7 +282,7 @@ def _run_file(path: Path, args: str | list, timeout: int) -> str:
 
 def _build(description, language, output_path, args, timeout, speak=None) -> str:
     if not description:
-        return "Please describe what you want me to build, sir."
+        return "Please describe what you want me to build."
 
     print("[Code] Build started...")
 
@@ -305,7 +305,7 @@ def _build(description, language, output_path, args, timeout, speak=None) -> str
 
 def _write_action(description, language, output_path) -> str:
     if not description:
-        return "Please describe what you want me to write, sir."
+        return "Please describe what you want me to write."
     print("[Code] Writing code...")
     try:
         code, path = _write(description, language, output_path)
@@ -317,9 +317,9 @@ def _write_action(description, language, output_path) -> str:
 
 def _edit_action(file_path, instruction) -> str:
     if not file_path:
-        return "Please provide a file path to edit, sir."
+        return "Please provide a file path to edit."
     if not instruction:
-        return "Please describe what change to make, sir."
+        return "Please describe what change to make."
 
     content, err = _read_file(file_path)
     if err:
@@ -356,7 +356,7 @@ def _explain_action(file_path, code) -> str:
         if err:
             return err
     if not code:
-        return "Please provide code or a file path to explain, sir."
+        return "Please provide code or a file path to explain."
 
     print("[Code] Analyzing code...")
 
@@ -379,7 +379,7 @@ Explanation:"""
 
 def _run_action(file_path, args, timeout) -> str:
     if not file_path:
-        return "Please provide a file path to run, sir."
+        return "Please provide a file path to run."
     p = Path(file_path)
     if not p.exists():
         return f"File not found: {file_path}"
@@ -396,7 +396,7 @@ def _optimize_action(file_path, code, language, output_path) -> str:
         if err:
             return err
     if not code:
-        return "Please provide code or a file path to optimize, sir."
+        return "Please provide code or a file path to optimize."
 
     print("[Code] Optimizing code...")
 
@@ -450,7 +450,7 @@ def _screen_debug_action(description, file_path, speak=None) -> str:
 
     screenshot_path = _take_screenshot()
     if not screenshot_path:
-        return "Could not take screenshot, sir. Please make sure PyAutoGUI is installed."
+        return "Could not take screenshot. Please make sure PyAutoGUI is installed."
 
     file_content = ""
     if file_path:

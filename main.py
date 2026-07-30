@@ -1060,7 +1060,7 @@ class NovaLive:
 
             elif name == "shutdown_nova":
                 self.ui.write_log("SYS: Shutdown requested.")
-                self.speak("Goodbye, sir.")
+                self.speak("Goodbye.")
 
                 def _shutdown():
                     time.sleep(3)
