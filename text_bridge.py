@@ -11,10 +11,9 @@ from typing import Optional,  Any, Callable
 import websockets
 from supabase import create_client, Client
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-REALTIME_URL = (SUPABASE_URL.replace("https://", "wss://") + "/realtime/v1/websocket") if SUPABASE_URL else ""
+def _get_env(key: str) -> str:
+    return os.environ.get(key, "")
 
 
 def _generate_code() -> str:
@@ -80,6 +79,12 @@ class TextBridge:
             self._log(f"Warning: {len(pending)} pending messages dropped (no event loop)")
 
     def start(self):
+        url = _get_env("SUPABASE_URL")
+        key = _get_env("SUPABASE_KEY")
+        if not url or not key:
+            self._log("Phone link disabled - add SUPABASE_URL and SUPABASE_KEY to .env")
+            self._log("Get them from: Supabase Dashboard > Settings > API")
+            return
         def _run_loop():
             try:
                 asyncio.run(self._arun())
@@ -155,7 +160,14 @@ class TextBridge:
     async def _arun(self):
         self._loop = asyncio.get_event_loop()
 
-        self._supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        url = _get_env("SUPABASE_URL")
+        key = _get_env("SUPABASE_KEY")
+        if not url or not key:
+            self._log("Phone link requires SUPABASE_URL and SUPABASE_KEY in .env")
+            self._log("Get them from Supabase Dashboard > Settings > API")
+            return
+
+        self._supabase = create_client(url, key)
 
         code = _generate_code()
         self._pairing_code = code
@@ -182,7 +194,10 @@ class TextBridge:
             await asyncio.sleep(1)
 
     async def _realtime_loop(self):
-        ws_url = f"{REALTIME_URL}?apikey={SUPABASE_KEY}&vsn=1.0.0"
+        url = _get_env("SUPABASE_URL")
+        key = _get_env("SUPABASE_KEY")
+        realtime_url = url.replace("https://", "wss://") + "/realtime/v1/websocket"
+        ws_url = f"{realtime_url}?apikey={key}&vsn=1.0.0"
         topic = f"realtime:public:messages:session_id=eq.{self._session_id}"
         ref = 0
 
