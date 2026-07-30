@@ -1,6 +1,9 @@
 # Nova 🌌
 > Prompt Once. It Finishes.
 
+![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)
+
 Nova is a single-prompt autonomous desktop AI agent with always-on voice, live screen vision, and 21 built-in tools. Powered by Google Gemini native audio — no STT/TTS pipeline.
 
 [![Nova Demo](https://img.youtube.com/vi/UuhD9J_L0uE/maxresdefault.jpg)](https://youtu.be/UuhD9J_L0uE)
